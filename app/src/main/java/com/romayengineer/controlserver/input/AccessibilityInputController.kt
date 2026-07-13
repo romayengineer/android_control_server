@@ -28,6 +28,9 @@ class AccessibilityInputController(private val service: AccessibilityService) : 
 
     override fun clickMouse(x: Int, y: Int, button: MouseButton): Boolean {
         Log.d(TAG, "clickMouse($x, $y, $button)")
+        // First move cursor to the position
+        moveMouse(x, y)
+        // Then perform the click
         return performClick(x.toFloat(), y.toFloat())
     }
 
@@ -43,6 +46,9 @@ class AccessibilityInputController(private val service: AccessibilityService) : 
 
     override fun scrollMouse(x: Int, y: Int, direction: ScrollDirection, distance: Int): Boolean {
         Log.d(TAG, "scrollMouse($x, $y, $direction, $distance)")
+        // First move cursor to the position
+        moveMouse(x, y)
+        // Then perform the scroll
         return performScroll(x.toFloat(), y.toFloat(), direction)
     }
 

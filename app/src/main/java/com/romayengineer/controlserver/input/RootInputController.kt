@@ -50,9 +50,11 @@ class RootInputController : InputController {
     }
 
     override fun clickMouse(x: Int, y: Int, button: MouseButton): Boolean {
-        // Use swipe from the same point to itself to simulate a tap
+        // First move cursor to the position
+        moveMouse(x, y)
+        // Then perform the click
         val command = "input swipe $x $y $x $y 100"
-        Log.d(TAG, "clickMouse($x, $y, $button) - using swipe")
+        Log.d(TAG, "clickMouse($x, $y, $button) - moving to position then clicking")
         return executeCommand(command)
     }
 
@@ -70,6 +72,9 @@ class RootInputController : InputController {
     }
 
     override fun scrollMouse(x: Int, y: Int, direction: ScrollDirection, distance: Int): Boolean {
+        // First move cursor to the position
+        moveMouse(x, y)
+        // Then perform the scroll
         val (dx, dy) = when (direction) {
             ScrollDirection.UP -> Pair(0, -distance)
             ScrollDirection.DOWN -> Pair(0, distance)
@@ -77,6 +82,7 @@ class RootInputController : InputController {
             ScrollDirection.RIGHT -> Pair(distance, 0)
         }
         val command = "input scroll $x $y $dx $dy"
+        Log.d(TAG, "scrollMouse($x, $y, $direction, $distance) - moving to position then scrolling")
         return executeCommand(command)
     }
 
