@@ -10,6 +10,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.romayengineer.controlserver.service.WiFiMouseService
+import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 
@@ -57,7 +58,7 @@ class MainActivity : AppCompatActivity() {
         return try {
             NetworkInterface.getNetworkInterfaces().toList()
                 .flatMap { it.inetAddresses.toList() }
-                .find { !it.isLoopbackAddress && it.hostAddress?.isNotEmpty() == true }
+                .find { it is Inet4Address && !it.isLoopbackAddress && it.hostAddress?.isNotEmpty() == true }
                 ?.hostAddress
         } catch (e: Exception) {
             null
