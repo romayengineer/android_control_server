@@ -1,7 +1,11 @@
 package com.romayengineer.controlserver.service
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -39,11 +43,22 @@ class WiFiMouseService : Service() {
     }
 
     private fun startForegroundService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "WiFi Mouse Server",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
+        }
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("WiFi Mouse Server")
             .setContentText("Server is running on port $DEFAULT_PORT")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
             .build()
 
         startForeground(NOTIFICATION_ID, notification)
