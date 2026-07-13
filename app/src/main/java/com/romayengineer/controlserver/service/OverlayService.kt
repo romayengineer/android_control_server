@@ -15,6 +15,7 @@ class OverlayService : Service() {
     companion object {
         private const val TAG = "OverlayService"
         private var overlayView: CursorView? = null
+        private var windowManager: WindowManager? = null
         private val mainHandler = Handler(Looper.getMainLooper())
 
         fun updateCursorPosition(x: Int, y: Int) {
@@ -30,17 +31,22 @@ class OverlayService : Service() {
         }
     }
 
-    private var windowManager: WindowManager? = null
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "OverlayService started")
-        createOverlay()
+        // Only create overlay if it doesn't already exist
+        if (overlayView == null) {
+            createOverlay()
+        } else {
+            Log.d(TAG, "Overlay already exists, reusing existing view")
+        }
         return START_STICKY_COMPATIBILITY
     }
 
     private fun createOverlay() {
         try {
-            windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+            if (windowManager == null) {
+                windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+            }
 
             overlayView = CursorView(this).apply {
                 setCursorVisible(true)
@@ -72,8 +78,10 @@ class OverlayService : Service() {
     override fun onDestroy() {
         Log.d(TAG, "OverlayService destroyed")
         try {
-            if (overlayView != null) {
+            if (overlayView != null && windowManager != null) {
                 windowManager?.removeView(overlayView)
+                overlayView = null
+                Log.d(TAG, "Overlay view removed")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error removing overlay view", e)
