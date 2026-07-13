@@ -35,17 +35,14 @@ class WiFiMouseService : Service() {
         fallbackController = RootInputController()
         startForegroundService()
         startOverlay()
+        // Schedule keep-alive job to ensure service restarts if killed
+        KeepAliveJobService.scheduleKeepAlive(this)
     }
 
     private fun startOverlay() {
         try {
             val overlayIntent = Intent(this, OverlayService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(overlayIntent)
-            } else {
-                @Suppress("DEPRECATION")
-                startService(overlayIntent)
-            }
+            startService(overlayIntent)
             Log.d(TAG, "Overlay service started")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start overlay service", e)

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.romayengineer.controlserver.service.KeepAliveJobService
 import com.romayengineer.controlserver.service.WiFiMouseService
 
 class BootReceiver : BroadcastReceiver() {
@@ -18,6 +19,8 @@ class BootReceiver : BroadcastReceiver() {
             val serviceIntent = Intent(context, WiFiMouseService::class.java)
             if (context != null) {
                 ContextCompat.startForegroundService(context, serviceIntent)
+                // Schedule keep-alive job
+                KeepAliveJobService.scheduleKeepAlive(context)
             }
         }
     }

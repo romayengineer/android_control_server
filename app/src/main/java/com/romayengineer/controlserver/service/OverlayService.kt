@@ -35,7 +35,7 @@ class OverlayService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "OverlayService started")
         createOverlay()
-        return START_STICKY
+        return START_STICKY_COMPATIBILITY
     }
 
     private fun createOverlay() {
