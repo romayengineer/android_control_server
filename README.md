@@ -24,6 +24,8 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Comprehensive Logging**: Detailed logs for all events - service lifecycle, client connections, command execution, input controller selection, and errors
 - **Dark Mode Theme**: Modern dark UI with excellent contrast - light text on dark backgrounds for comfortable viewing
 - **Permission Validation**: Automatic startup check validates all required permissions and AccessibilityService status
+- **Permission Requests**: App automatically requests missing permissions on first launch with system dialogs
+- **Accessibility Service Guide**: Dialog prompts user to enable AccessibilityService with direct link to Settings
 - **Status Badge**: Visual indicator (green/red circle) shows at a glance if app is ready to use - green = all OK, red = missing permissions or AccessibilityService
 - **Automated Build & Install**: PowerShell scripts for Windows - build, auto-connect, install, and launch in one command
 - **Device Auto-Connect**: Automatically connects to offline/unauthorized devices before installation
@@ -211,31 +213,41 @@ Features:
 
 ### Granting Permissions
 
-After installation, grant the required permissions:
+The app automatically requests all required permissions on first launch with system permission dialogs. Simply grant the permissions when prompted.
 
+**Permissions Requested:**
+- `INTERNET` - Required for TCP socket communication
+- `RECEIVE_BOOT_COMPLETED` - Required for auto-start on boot
+- `FOREGROUND_SERVICE` - Required to run as foreground service
+- `SYSTEM_ALERT_WINDOW` - Required for system-wide overlay cursor
+
+If you need to manually grant permissions via ADB:
 ```bash
-# If device has root access
-adb shell
-su
-pm grant com.romayengineer.controlserver android.permission.INTERNET
+adb shell pm grant com.romayengineer.controlserver android.permission.INTERNET
+adb shell pm grant com.romayengineer.controlserver android.permission.RECEIVE_BOOT_COMPLETED
+adb shell pm grant com.romayengineer.controlserver android.permission.FOREGROUND_SERVICE
+adb shell pm grant com.romayengineer.controlserver android.permission.SYSTEM_ALERT_WINDOW
 ```
 
 ### Enabling AccessibilityService (Non-Root Option)
 
 For non-root click and scroll support, enable the AccessibilityService:
 
-**Via ADB:**
-```bash
-adb shell settings put secure enabled_accessibility_services com.romayengineer.controlserver/.service.ControlServerAccessibilityService
-```
+**In-App Dialog (Easiest):**
+When you launch the app, if AccessibilityService is not enabled, a dialog will appear offering to open the Accessibility settings for you. Just tap "Open Settings" to go directly there.
 
-**Or Manually on Device:**
+**Manual on Device:**
 1. Open Settings
 2. Navigate to Accessibility (or Accessibility Settings)
 3. Find "ControlServer" or "Android WiFi Control Server"
 4. Enable the service
 
-Once enabled, the app will automatically use AccessibilityService for click and scroll commands. No restart needed.
+**Via ADB:**
+```bash
+adb shell settings put secure enabled_accessibility_services com.romayengineer.controlserver/.service.ControlServerAccessibilityService
+```
+
+Once enabled, the app will automatically use AccessibilityService for click and scroll commands. The status badge will turn green when the service is active. No restart needed.
 
 ## Usage
 
@@ -516,15 +528,27 @@ Modern dark UI implementation with carefully chosen colors:
 - **UI Elements**: All buttons, inputs, and text styled for dark theme consistency
 
 ### PermissionChecker & Status Badge
-Automatic startup validation with visual feedback:
+Automatic startup validation with visual feedback and user guidance:
+
+**Startup Checks:**
 - **Permission Validation**: Checks required permissions (INTERNET, RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE, SYSTEM_ALERT_WINDOW)
 - **AccessibilityService Check**: Verifies if AccessibilityService is enabled via Settings.Secure API
 - **Startup Check**: Runs automatically when app launches
-- **Status Badge**: 24dp circular indicator next to app title
-  - **Green**: All permissions granted AND AccessibilityService enabled = App is ready
-  - **Red**: Missing permissions OR AccessibilityService disabled = User action needed
-- **Log Details**: Detailed permission status logged for each check with visual indicators (✓/✗)
-- **Dynamic Checking**: Non-intrusive - checks on startup without blocking app functionality
+
+**Automatic Requests:**
+- **Permission Requests**: If any required permissions are missing, the app automatically shows the system permission dialog to request them
+- **Accessibility Service Dialog**: If AccessibilityService is not enabled, the app shows a helpful dialog with a direct "Open Settings" button to enable it
+- **Dynamic Badge Updates**: After granting permissions, the status badge automatically updates to reflect the new state
+
+**Status Badge:**
+- 24dp circular indicator next to app title
+- **Green**: All permissions granted AND AccessibilityService enabled = App is ready
+- **Red**: Missing permissions OR AccessibilityService disabled = User action needed
+
+**Logging & Feedback:**
+- Detailed permission status logged for each check with visual indicators (✓/✗)
+- Permission request results logged in real-time
+- Non-intrusive - checks on startup without blocking app functionality
 
 ## Permissions Required
 

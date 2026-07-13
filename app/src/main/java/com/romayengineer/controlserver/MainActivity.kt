@@ -7,11 +7,14 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.romayengineer.controlserver.service.WiFiMouseService
 import com.romayengineer.controlserver.ui.CursorView
@@ -23,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private var cursorView: CursorView? = null
         private val mainHandler = Handler(Looper.getMainLooper())
+        private const val PERMISSION_REQUEST_CODE = 1001
 
         fun updateCursorPosition(x: Int, y: Int) {
             mainHandler.post {
@@ -57,6 +61,16 @@ class MainActivity : AppCompatActivity() {
         // Run startup permission check
         val startupStatus = PermissionChecker.runStartupCheck(this)
         updateStatusBadge(statusBadge, startupStatus)
+
+        // Request missing permissions
+        if (!startupStatus.permissionsOk) {
+            requestMissingPermissions()
+        }
+
+        // Request accessibility service if not enabled
+        if (!startupStatus.accessibilityEnabled) {
+            showAccessibilityDialog()
+        }
 
         portEditText.setText(WiFiMouseService.DEFAULT_PORT.toString())
         displayLocalIpAddress(ipAddressText)
@@ -115,5 +129,51 @@ class MainActivity : AppCompatActivity() {
         }
 
         badge.background?.setColorFilter(color, PorterDuff.Mode.SRC_IN)
+    }
+
+    private fun requestMissingPermissions() {
+        val requiredPermissions = arrayOf(
+            "android.permission.INTERNET",
+            "android.permission.RECEIVE_BOOT_COMPLETED",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.SYSTEM_ALERT_WINDOW"
+        )
+        val missingPermissions = requiredPermissions.filter { permission ->
+            ContextCompat.checkSelfPermission(this, permission) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        }.toTypedArray()
+
+        if (missingPermissions.isNotEmpty()) {
+            LogManager.i("Requesting ${missingPermissions.size} missing permission(s)")
+            ActivityCompat.requestPermissions(this, missingPermissions, PERMISSION_REQUEST_CODE)
+        }
+    }
+
+    private fun showAccessibilityDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Enable AccessibilityService")
+            .setMessage("AccessibilityService is not enabled. The app works best with AccessibilityService enabled for click and scroll operations.\n\nWould you like to open Accessibility settings?")
+            .setPositiveButton("Open Settings") { _, _ ->
+                LogManager.i("User requested to open Accessibility settings")
+                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                startActivity(intent)
+            }
+            .setNegativeButton("Skip", null)
+            .show()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            val granted = grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }
+            if (granted) {
+                LogManager.i("All requested permissions granted!")
+                // Re-run startup check to update badge
+                val statusBadge = findViewById<View>(R.id.status_badge)
+                val startupStatus = PermissionChecker.runStartupCheck(this)
+                updateStatusBadge(statusBadge, startupStatus)
+            } else {
+                LogManager.w("Some permissions were denied")
+            }
+        }
     }
 }
