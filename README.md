@@ -23,6 +23,9 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Live Log Display**: Real-time logs displayed in the app UI with timestamps
 - **Comprehensive Logging**: Detailed logs for all events - service lifecycle, client connections, command execution, input controller selection, and errors
 - **Dark Mode Theme**: Modern dark UI with excellent contrast - light text on dark backgrounds for comfortable viewing
+- **Automated Build & Install**: PowerShell scripts for Windows - build, auto-connect, install, and launch in one command
+- **Device Auto-Connect**: Automatically connects to offline/unauthorized devices before installation
+- **Smart Device Detection**: Handles device names with spaces and multiple connected devices
 
 ## Architecture
 
@@ -95,6 +98,24 @@ The project consists of two main components:
 
 #### Building the Server APK
 
+**Option 1: Using PowerShell Build Script (Recommended for Windows)**
+
+```powershell
+# Build debug APK
+.\build.ps1
+
+# Build release APK
+.\build.ps1 -BuildType release
+```
+
+The build script automatically:
+- Sets up environment variables
+- Validates Java and Android SDK
+- Builds the APK
+- Shows build duration and APK size
+
+**Option 2: Using Gradle Directly**
+
 ```bash
 # Clone the repository
 git clone <repository-url>
@@ -112,23 +133,79 @@ chmod +x ./gradlew
 ### Installing on Android Device
 
 #### Prerequisites
-- Connect Android device via USB
-- Enable USB Debugging on the device
+- Connect Android device via USB or WiFi ADB
+- Enable USB Debugging on the device (for USB) or enable ADB over network
 - Verify connection: `adb devices`
 
 #### Installation Options
 
-```bash
-# Option 1: Using Android Studio
-# - Open the project in Android Studio
-# - Click "Run" or press Shift+F10
+**Option 1: Using PowerShell Install Script (Recommended for Windows)**
 
-# Option 2: Using command line
-./gradlew installDebug
+The easiest way - builds, installs, and launches in one command:
 
-# Option 3: Manual installation
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+```powershell
+# Build and install to connected device
+.\install.ps1
+
+# With release build
+.\install.ps1 -BuildType release
 ```
+
+The install script automatically:
+- Builds the APK
+- Detects connected device
+- Auto-connects to offline devices
+- Installs the app
+- Launches the app on the device
+- Shows IP address and next steps
+
+**Option 2: Using Android Studio**
+```bash
+# Option 2a: Click "Run" or press Shift+F10
+# Option 2b: Using terminal
+./gradlew installDebug
+```
+
+**Option 3: Manual installation with adb**
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Launch the app
+adb shell am start -n "com.romayengineer.controlserver/.MainActivity"
+```
+
+### Build and Install Scripts
+
+Windows users have convenient PowerShell scripts for building and installation:
+
+**build.ps1** - Standalone build script
+```powershell
+# Build debug APK
+.\build.ps1
+
+# Build release APK
+.\build.ps1 -BuildType release
+
+# Clean and rebuild
+.\build.ps1 -Clean
+```
+
+**install.ps1** - Complete build and install workflow
+```powershell
+# One-command setup: Build → Connect → Install → Launch
+.\install.ps1
+
+# With release build
+.\install.ps1 -BuildType release
+```
+
+Features:
+- ✓ Auto-detects connected devices
+- ✓ Auto-connects to offline/unauthorized devices
+- ✓ Handles device names with spaces
+- ✓ Auto-launches app after installation
+- ✓ Shows build metrics and progress
+- ✓ Helpful error messages and troubleshooting tips
 
 ### Granting Permissions
 
@@ -326,6 +403,11 @@ android_control_server/
 ├── gradle.properties
 ├── build.gradle
 ├── settings.gradle
+├── build.ps1                          # PowerShell build script for Windows
+├── install.ps1                        # PowerShell build + install + launch script
+├── mouse_event.sh                     # Shell script for sending mouse commands
+├── debug_click.sh                     # Shell script for debug click testing
+├── run_and_tail.sh                    # Shell script for running and monitoring logs
 └── README.md
 ```
 
