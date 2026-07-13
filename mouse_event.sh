@@ -1,27 +1,31 @@
 #!/bin/bash
 
 # WiFi Mouse Control Server - Mouse Event Script
-# Usage: ./mouse_event.sh <event_type> <x> <y> [button]
+# Usage: ./mouse_event.sh <phone_ip> <event_type> <x> <y> [button]
 # Examples:
-#   ./mouse_event.sh move 500 300
-#   ./mouse_event.sh click 500 300 LEFT
-#   ./mouse_event.sh click 500 300
+#   ./mouse_event.sh 192.168.1.100 move 500 300
+#   ./mouse_event.sh 192.168.1.100 click 500 300 LEFT
+#   ./mouse_event.sh 192.168.1.100 click 500 300
 
 if [ $# -lt 3 ]; then
-    echo "Usage: $0 <event_type> <x> <y> [button]"
+    echo "Usage: $0 [phone_ip] <event_type> <x> <y> [button]"
+    echo ""
     echo "Event types: move, click"
     echo "Buttons: LEFT (default), RIGHT, MIDDLE"
+    echo "Phone IP: defaults to localhost"
     echo ""
     echo "Examples:"
-    echo "  $0 move 500 300"
-    echo "  $0 click 500 300 LEFT"
+    echo "  $0 localhost move 500 300"
+    echo "  $0 192.168.1.100 move 500 300"
+    echo "  $0 192.168.1.100 click 500 300 LEFT"
     exit 1
 fi
 
-EVENT_TYPE=$1
-X=$2
-Y=$3
-BUTTON=${4:-LEFT}
+PHONE_IP=${1:-localhost}
+EVENT_TYPE=${2}
+X=${3}
+Y=${4}
+BUTTON=${5:-LEFT}
 PORT=3934
 
 # Validate coordinates
@@ -45,11 +49,8 @@ case "$EVENT_TYPE" in
         ;;
 esac
 
-# Setup adb port forwarding
-adb forward tcp:$PORT tcp:$PORT > /dev/null 2>&1
-
-# Send command
-if printf '%s\n' "$COMMAND" | nc -w 2 localhost $PORT > /dev/null 2>&1; then
+# Send command to phone
+if printf '%s\n' "$COMMAND" | nc -w 2 $PHONE_IP $PORT > /dev/null 2>&1; then
     case "$EVENT_TYPE" in
         move)
             echo "✓ Moved mouse to ($X, $Y)"
@@ -59,6 +60,6 @@ if printf '%s\n' "$COMMAND" | nc -w 2 localhost $PORT > /dev/null 2>&1; then
             ;;
     esac
 else
-    echo "✗ Failed to connect to localhost:$PORT"
+    echo "✗ Failed to connect to $PHONE_IP:$PORT"
     exit 1
 fi
