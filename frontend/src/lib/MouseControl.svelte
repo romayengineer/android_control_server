@@ -20,8 +20,12 @@
 
 	const CIRCLE_RADIUS = 80;
 	const CONTAINER_SIZE = 300;
-	const SENSITIVITY_FACTOR = 0.05; // Range: 0.1 (slow) to 1.0 (fast), 0.4 = 40% of max speed
 	const RECONNECT_INTERVAL = 3000; // Reconnect every 3 seconds
+
+	// Velocity control
+	const MAX_VELOCITY = 2; // Maximum pixels per command
+	const ACCELERATION = 0.8; // How quickly to reach target velocity (0-1)
+	const DECELERATION = 0.9; // How quickly to stop (0-1)
 
 	let centerX: number = CONTAINER_SIZE / 2;
 	let centerY: number = CONTAINER_SIZE / 2;
@@ -31,6 +35,10 @@
 	let commandQueue: Record<string, unknown>[] = [];
 	let queueProcessor: ReturnType<typeof setInterval> | null = null;
 	const QUEUE_CHECK_INTERVAL = 1000;
+
+	// Current velocity tracking
+	let currentVx: number = 0;
+	let currentVy: number = 0;
 
 	function startReconnectTimer(): void {
 		if (reconnectTimer) return;
@@ -216,6 +224,8 @@
 
 	function onMouseUp(): void {
 		isDragging = false;
+		currentVx = 0;
+		currentVy = 0;
 	}
 
 	function updateCursorPosition(event: MouseEvent): void {
@@ -234,17 +244,42 @@
 			const angle = Math.atan2(dy, dx);
 			const magnitude = Math.min(distance / CIRCLE_RADIUS, 1);
 
-			// Calculate relative movement based on direction and magnitude with sensitivity
-			const baseX = Math.cos(angle) * magnitude * 100;
-			const baseY = Math.sin(angle) * magnitude * 100;
-			const relativeX = Math.round(baseX * SENSITIVITY_FACTOR);
-			const relativeY = Math.round(baseY * SENSITIVITY_FACTOR);
+			// Calculate target velocity based on joystick position
+			const targetVx = Math.cos(angle) * magnitude * MAX_VELOCITY;
+			const targetVy = Math.sin(angle) * magnitude * MAX_VELOCITY;
 
-			pushCommand({
-				command: 'mousemove',
-				dx: relativeX,
-				dy: relativeY
-			});
+			// Smoothly accelerate/decelerate to target velocity
+			currentVx = currentVx + (targetVx - currentVx) * ACCELERATION;
+			currentVy = currentVy + (targetVy - currentVy) * ACCELERATION;
+
+			const relativeX = Math.round(currentVx);
+			const relativeY = Math.round(currentVy);
+
+			if (relativeX !== 0 || relativeY !== 0) {
+				pushCommand({
+					command: 'mousemove',
+					dx: relativeX,
+					dy: relativeY
+				});
+			}
+		} else {
+			// Decelerate when joystick is released
+			currentVx *= DECELERATION;
+			currentVy *= DECELERATION;
+
+			// Stop completely when velocity is very small
+			if (Math.abs(currentVx) < 0.1) currentVx = 0;
+			if (Math.abs(currentVy) < 0.1) currentVy = 0;
+
+			if (currentVx !== 0 || currentVy !== 0) {
+				const relativeX = Math.round(currentVx);
+				const relativeY = Math.round(currentVy);
+				pushCommand({
+					command: 'mousemove',
+					dx: relativeX,
+					dy: relativeY
+				});
+			}
 		}
 	}
 

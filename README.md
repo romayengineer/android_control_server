@@ -38,6 +38,7 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Unified Command Processing**: Centralized CommandProcessor eliminates code duplication between TCP and WebSocket servers
 - **Time-based Movement Scaling**: Mouse movements are scaled by time intervals, smoothing acceleration based on command frequency for natural motion
 - **Smooth Cursor Animation**: Cursor smoothly transitions from point A to point B with 150ms linear interpolation for natural, fluid motion
+- **Bounded Velocity Control**: Joystick-based movement accelerates smoothly to a maximum velocity cap for predictable, controlled motion without speed spikes
 
 ## Architecture
 
@@ -468,17 +469,26 @@ The included web-based frontend (built with Svelte) provides an intuitive touch-
 
 **Features:**
 - Visual circular control pad for mouse movement with drag gestures
+- Bounded velocity control with smooth acceleration/deceleration (prevents speed spikes)
+- Joystick-based input with configurable max velocity and acceleration curves
 - Left click and right click support
 - Real-time connection status indicator (green when connected, red when disconnected)
 - Smart auto-reconnect that maintains connection stability
 - Dark theme UI optimized for comfortable use in various lighting conditions
 - Responsive design works on desktop browsers and tablets
+- Command queueing with intelligent mousemove merging for high-frequency inputs
 
 **Auto-Reconnect Behavior:**
 - Once connected to a server, if the connection drops, the frontend automatically attempts to reconnect every 3 seconds
 - Status displays "Reconnecting..." while attempting to restore the connection
 - No need to manually reconnect or reload the page
 - User can click Disconnect to stop reconnection attempts and change server IP/port
+
+**Velocity Control Configuration:**
+Customize the joystick movement behavior by adjusting these constants in `MouseControl.svelte`:
+- `MAX_VELOCITY` (default: 30) - Maximum pixels per command (lower = slower max speed)
+- `ACCELERATION` (default: 0.8) - How quickly to reach target velocity (0.5 = gradual, 0.95 = snappy)
+- `DECELERATION` (default: 0.9) - How quickly to stop when released (0.85 = quick stop, 0.95 = coasting)
 
 ### WebSocket Connection Example
 
