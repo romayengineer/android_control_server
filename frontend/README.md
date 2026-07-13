@@ -13,7 +13,8 @@ A modern, TypeScript-based Svelte web application for controlling the WiFi Mouse
 - **Sensitivity Control**: Built-in 0.4x sensitivity factor (configurable) for smooth, controlled movement
 - **TypeScript**: Fully typed for type safety and better developer experience
 - **Tailwind CSS**: Modern utility-first CSS framework for rapid UI development
-- **Throttled Events**: Mousemove events throttled at 50ms for smooth continuous movement while preventing network flooding
+- **Throttled Events**: Mousemove events throttled at 50ms for smooth continuous movement
+- **Server Acknowledgment**: Waits for server response before sending next event (flow control)
 - **Console Logging**: Detailed event logging with emoji icons for easy debugging
 - **Modern UI**: Clean, gradient-based dark theme with responsive design
 
@@ -98,20 +99,32 @@ Mouse movement uses a configurable sensitivity factor for precise control:
   - `1.0` = 100% (maximum speed)
 - **Benefits**: Smooth, controlled pointer movement without overshooting
 
-### Event Throttling
+### Event Throttling with Server Acknowledgment
 
-Mouse movement events are throttled to balance smooth control with network efficiency:
-- **Mousemove events**: Throttled - sent at most every 50ms while dragging
-- **Continuous movement**: Position updates sent continuously while holding drag
-- **Click events**: Sent immediately without throttling
-- **Benefits**: Smooth continuous movement without flooding the server with events
-- **Network efficiency**: Max ~20 events per second (1000ms ÷ 50ms) vs unlimited
-- **Behavior**: Drag and hold the circle - cursor follows smoothly as you drag
+Mouse movement events use intelligent throttling with server flow control:
 
-**How throttling works:**
-1. First mouse move event: sends immediately
-2. Subsequent events within 50ms: queued and sent at the next 50ms window
-3. This ensures 50ms resolution updates while dragging continuously
+**Throttling Strategy:**
+- **Mousemove events**: Sent at most every 50ms while dragging
+- **Continuous movement**: Position updates sent while holding drag (with response wait)
+- **Click events**: Sent immediately
+- **Network efficiency**: Max ~20 events per second
+
+**Flow Control (Response Waiting):**
+- **Wait for ACK**: After sending a command, waits for server response before next send
+- **Queuing**: If new events arrive while waiting, the latest is queued
+- **Auto-resume**: When response arrives, queued command is automatically sent
+- **Benefits**: Ensures ordered command execution, prevents command overflow
+
+**Event Flow Example:**
+```
+1. Client: Send mousemove(dx:40, dy:30)  → isWaitingForResponse = true
+2. Server: Process command, send response
+3. Client: Receive response → isWaitingForResponse = false
+4. Client: If pending command exists, send it immediately
+5. Repeat from step 1
+```
+
+**Result:** Smooth continuous movement while maintaining command order and preventing network saturation
 
 ### Console Logging
 
@@ -123,10 +136,12 @@ Comprehensive logging for debugging (press F12 to open Developer Tools):
 - ❌ `❌ WebSocket error: ...` - Connection failed
 
 **Command Events:**
-- 📤 `📤 Event sent: {command: "mousemove", dx: 40, dy: 30}` - Throttled mousemove (every 50ms)
-- 📤 `📤 Event sent: {command: "mousemove", dx: 35, dy: 25}` - Next update in window
-- 🖱️ `🖱️ Left click` - Left-click action (immediate, no throttling)
-- 🖱️ `🖱️ Right click` - Right-click action (immediate, no throttling)
+- 📤 `📤 Event sent: {command: "mousemove", dx: 40, dy: 30}` - First update sent
+- ⏳ `⏳ Waiting for response, queueing command` - New event while waiting
+- 📨 `📨 Sending pending command` - Sending queued update after response
+- 📤 `📤 Event sent: {command: "mousemove", dx: 35, dy: 25}` - Queued update sent
+- 🖱️ `🖱️ Left click` - Left-click action
+- 📥 `📥 Server response: {success: true, command: "click"}` - Acknowledgment
 
 **Server Responses:**
 - 📥 `📥 Server response: {success: true, ...}` - Server acknowledgment
@@ -215,18 +230,22 @@ The project is fully typed with:
 ```
 ✅ WebSocket connected to ws://192.168.1.100:3935
 📤 Event sent: {command: "mousemove", dx: 40, dy: 30}
-📤 Event sent: {command: "mousemove", dx: 40, dy: 25}
+📥 Server response: {success: true, command: "mousemove"}
+⏳ Waiting for response, queueing command
+⏳ Waiting for response, queueing command
+📨 Sending pending command
+📤 Event sent: {command: "mousemove", dx: 42, dy: 28}
+📥 Server response: {success: true, command: "mousemove"}
+📨 Sending pending command
 📤 Event sent: {command: "mousemove", dx: 35, dy: 20}
-🖱️ Left click
-📤 Event sent: {command: "click", button: "LEFT"}
-📥 Server response: {success: true, command: "click"}
 ```
 
 **Key observations:**
-- Multiple mousemove events sent while holding drag (every ~50ms)
-- `dx` and `dy` values are relative deltas, allowing unbounded control
-- Click events appear separately with immediate response
-- Server sends back success confirmation for each command
+- First mousemove sent immediately, then waits for response
+- While waiting, new movements are queued (⏳)
+- After response arrives, queued command is automatically sent (📨)
+- This ensures ordered execution and prevents command overflow
+- Smooth continuous movement is maintained through intelligent queuing
 
 ## Development Notes
 
@@ -249,14 +268,18 @@ The project is fully typed with:
 - **Custom Colors**: Extended color palette with `status-green` and `status-red`
 - **Production**: CSS automatically purged and minified in build output
 
-### Event Throttling Implementation
-- **Function**: `sendCommandThrottled()` handles throttled mousemove events
+### Event Throttling with Response Waiting Implementation
+- **Function**: `sendCommandThrottled()` handles throttled mousemove with flow control
+- **Response Flag**: `isWaitingForResponse` prevents sending until ACK received
 - **Timer Management**: `sendTimer` tracks pending sends in current throttle window
-- **Pending Command**: `pendingCommand` stores the latest command while waiting
-- **Last Send Time**: `lastSendTime` tracks when the last event was sent
-- **Delay**: Configurable via `THROTTLE_DELAY` constant (50ms for smooth movement)
-- **Cleanup**: Properly clears timers on component unmount and mouse up
-- **Behavior**: Sends immediately if throttle window elapsed, queues otherwise
+- **Pending Command**: `pendingCommand` stores latest command while waiting for response
+- **Last Send Time**: `lastSendTime` tracks when last event was sent
+- **Delay**: Configurable via `THROTTLE_DELAY` constant (50ms)
+- **Flow Control**: 
+  - Check `isWaitingForResponse` before sending
+  - Queue command if waiting
+  - Auto-resume from `onmessage` when response arrives
+- **Click Handling**: Also respects response waiting to maintain command order
 
 ### Sensitivity Control Implementation
 - **Constant**: `SENSITIVITY_FACTOR` (default: 0.4)

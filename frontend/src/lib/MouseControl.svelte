@@ -28,6 +28,7 @@
 	let lastSendTime: number = 0;
 	let pendingCommand: Record<string, unknown> | null = null;
 	let sendTimer: ReturnType<typeof setTimeout> | null = null;
+	let isWaitingForResponse: boolean = false;
 
 	function connectWebSocket(): void {
 		const url = `ws://${config.serverIp}:${config.serverPort}`;
@@ -46,6 +47,15 @@
 			ws.onmessage = (event: MessageEvent) => {
 				const response = JSON.parse(event.data);
 				console.log('📥 Server response:', response);
+				isWaitingForResponse = false;
+
+				// Send pending command if any
+				if (pendingCommand && isDragging) {
+					console.log('📨 Sending pending command');
+					sendCommand(pendingCommand);
+					pendingCommand = null;
+					isWaitingForResponse = true;
+				}
 			};
 
 			ws.onerror = (error) => {
@@ -82,6 +92,13 @@
 	}
 
 	function sendCommandThrottled(command: Record<string, unknown>): void {
+		// If waiting for response, queue the command
+		if (isWaitingForResponse) {
+			pendingCommand = command;
+			console.log('⏳ Waiting for response, queueing command');
+			return;
+		}
+
 		pendingCommand = command;
 		const now = Date.now();
 		const timeSinceLastSend = now - lastSendTime;
@@ -91,6 +108,7 @@
 			sendCommand(command);
 			lastSendTime = now;
 			pendingCommand = null;
+			isWaitingForResponse = true;
 
 			// Clear any pending timer
 			if (sendTimer) {
@@ -101,9 +119,11 @@
 			// Schedule a send for the next throttle window
 			if (!sendTimer) {
 				sendTimer = setTimeout(() => {
-					if (pendingCommand && ws && isConnected && ws.readyState === WebSocket.OPEN) {
+					if (pendingCommand && ws && isConnected && ws.readyState === WebSocket.OPEN && !isWaitingForResponse) {
 						sendCommand(pendingCommand);
 						lastSendTime = Date.now();
+						pendingCommand = null;
+						isWaitingForResponse = true;
 					}
 					sendTimer = null;
 				}, THROTTLE_DELAY - timeSinceLastSend);
@@ -157,7 +177,9 @@
 	}
 
 	function onClick(): void {
+		if (isWaitingForResponse) return;
 		console.log('🖱️ Left click');
+		isWaitingForResponse = true;
 		sendCommand({
 			command: 'click',
 			button: 'LEFT'
@@ -166,7 +188,9 @@
 
 	function onContextMenu(event: MouseEvent): void {
 		event.preventDefault();
+		if (isWaitingForResponse) return;
 		console.log('🖱️ Right click');
+		isWaitingForResponse = true;
 		sendCommand({
 			command: 'click',
 			button: 'RIGHT'
