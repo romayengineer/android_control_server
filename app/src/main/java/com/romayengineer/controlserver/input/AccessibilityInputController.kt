@@ -6,7 +6,7 @@ import android.graphics.Path
 import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import com.romayengineer.controlserver.MainActivity
+import com.romayengineer.controlserver.service.OverlayService
 
 data class QuadCoords(val startX: Float, val startY: Float, val endX: Float, val endY: Float)
 
@@ -17,7 +17,7 @@ class AccessibilityInputController(private val service: AccessibilityService) : 
 
     override fun moveMouse(x: Int, y: Int): Boolean {
         Log.d(TAG, "moveMouse($x, $y)")
-        MainActivity.updateCursorPosition(x, y)
+        OverlayService.updateCursorPosition(x, y)
         return true
     }
 
