@@ -45,27 +45,71 @@ The project consists of two main components:
 
 ## Installation
 
-### Building the Server APK
+### Building on macOS
+
+#### Prerequisites
+
+1. **Install Android Studio**
+   ```bash
+   # Option 1: Using Homebrew
+   brew install android-studio
+   
+   # Option 2: Download directly from
+   # https://developer.android.com/studio
+   ```
+
+2. **Set up Android SDK**
+   - Launch Android Studio
+   - Go to Android Studio → Preferences → Appearance & Behavior → System Settings → Android SDK
+   - Install SDK Platform for API 24+ and Android SDK Build-Tools
+
+3. **Set environment variables** (add to `~/.zshrc` or `~/.bash_profile`)
+   ```bash
+   export ANDROID_SDK_ROOT=$HOME/Library/Android/sdk
+   export PATH=$PATH:$ANDROID_SDK_ROOT/tools:$ANDROID_SDK_ROOT/platform-tools
+   ```
+   Then reload: `source ~/.zshrc`
+
+4. **Verify setup**
+   ```bash
+   adb version
+   java -version  # Should be Java 11 or higher
+   ```
+
+#### Building the Server APK
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd android_control_server
 
+# Make gradle executable
+chmod +x ./gradlew
+
 # Build the APK
 ./gradlew assembleDebug
 
-# APK will be in: app/build/outputs/apk/debug/
+# APK will be in: app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ### Installing on Android Device
 
-```bash
-# Using Android Studio
-# - Open the project in Android Studio
-# - Click "Run" or use Shift+F10
+#### Prerequisites
+- Connect Android device via USB
+- Enable USB Debugging on the device
+- Verify connection: `adb devices`
 
-# Using adb
+#### Installation Options
+
+```bash
+# Option 1: Using Android Studio
+# - Open the project in Android Studio
+# - Click "Run" or press Shift+F10
+
+# Option 2: Using command line
+./gradlew installDebug
+
+# Option 3: Manual installation
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
