@@ -22,6 +22,7 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Auto-restart on Crash**: Uses START_STICKY and KeepAliveJobService to automatically restart if killed
 - **Live Log Display**: Real-time logs displayed in the app UI with timestamps
 - **Comprehensive Logging**: Detailed logs for all events - service lifecycle, client connections, command execution, input controller selection, and errors
+- **Dark Mode Theme**: Modern dark UI with excellent contrast - light text on dark backgrounds for comfortable viewing
 
 ## Architecture
 
@@ -209,6 +210,24 @@ The app includes real-time logging directly in the UI for easy debugging and mon
 - Error messages with context
 - Warnings and debug information
 
+### Dark Mode Theme
+
+The app features a modern dark theme designed for comfortable viewing and reduced eye strain:
+- **Dark Background**: `#1a1a1a` (very dark gray) for the main UI
+- **Light Text**: All text in white/light gray for excellent contrast and readability
+- **Accent Colors**:
+  - **Blue** (`#3b82f6`) - IP address display and input field accents
+  - **Green** (`#10b981`) - Start button and log text highlighting
+  - **Red** (`#ef4444`) - Stop button for clear visual distinction
+- **Card Elements**: Slightly lighter backgrounds (`#2a2a2a`) for input fields and sections
+- **Monospace Logs**: Green-on-black terminal-style logs area for technical readability
+
+The dark theme provides:
+- Reduced eye strain during extended usage
+- Professional, modern appearance
+- Clear visual hierarchy with accent colors
+- High contrast for accessibility
+
 ### Finding Your Projector's IP
 
 ```bash
@@ -298,7 +317,7 @@ android_control_server/
 │   │   │   ├── layout/activity_main.xml
 │   │   │   ├── mipmap-*/                       # App icons for different densities
 │   │   │   └── values/
-│   │   │       ├── colors.xml
+│   │   │       ├── colors.xml                   # Dark mode color palette
 │   │   │       ├── strings.xml
 │   │   │       └── styles.xml
 │   │   └── AndroidManifest.xml
@@ -399,6 +418,15 @@ Centralized logging system with real-time UI display:
 - **Auto-scroll**: Scrolls to latest logs for visibility
 - **Multiple Levels**: Support for debug, info, warning, and error logs
 - **Android Logging**: Also logs to Android's standard logcat for debugging
+
+### Dark Mode Theme
+Modern dark UI implementation with carefully chosen colors:
+- **Color Palette**: Defined in `colors.xml` with semantic naming
+- **Background Colors**: Primary dark (`#1a1a1a`), card (`#2a2a2a`), darker (`#0d0d0d`)
+- **Text Colors**: Primary white (`#ffffff`), secondary light gray (`#b0b0b0`)
+- **Accent Colors**: Blue, green, and red for clear visual hierarchy
+- **Contrast**: Minimum 4.5:1 contrast ratio for accessibility compliance
+- **UI Elements**: All buttons, inputs, and text styled for dark theme consistency
 
 ## Permissions Required
 
