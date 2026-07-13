@@ -23,6 +23,8 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Live Log Display**: Real-time logs displayed in the app UI with timestamps
 - **Comprehensive Logging**: Detailed logs for all events - service lifecycle, client connections, command execution, input controller selection, and errors
 - **Dark Mode Theme**: Modern dark UI with excellent contrast - light text on dark backgrounds for comfortable viewing
+- **Permission Validation**: Automatic startup check validates all required permissions and AccessibilityService status
+- **Status Badge**: Visual indicator (green/red circle) shows at a glance if app is ready to use - green = all OK, red = missing permissions or AccessibilityService
 - **Automated Build & Install**: PowerShell scripts for Windows - build, auto-connect, install, and launch in one command
 - **Device Auto-Connect**: Automatically connects to offline/unauthorized devices before installation
 - **Smart Device Detection**: Handles device names with spaces and multiple connected devices
@@ -388,9 +390,12 @@ android_control_server/
 │   │   │   ├── ui/
 │   │   │   │   └── CursorView.kt                        # Custom cursor with crosshair design
 │   │   │   ├── LogManager.kt                            # Central logging system with UI display
+│   │   │   ├── PermissionChecker.kt                     # Permission validation & status badge
 │   │   │   └── MainActivity.kt                          # UI for server control + logs + cursor
 │   │   ├── res/
-│   │   │   ├── drawable/                       # Launcher icon assets
+│   │   │   ├── drawable/
+│   │   │   │   ├── badge_circle.xml                    # Status badge (green/red circle)
+│   │   │   │   └── ...                                 # Launcher icon assets
 │   │   │   ├── layout/activity_main.xml
 │   │   │   ├── mipmap-*/                       # App icons for different densities
 │   │   │   └── values/
@@ -509,6 +514,17 @@ Modern dark UI implementation with carefully chosen colors:
 - **Accent Colors**: Blue, green, and red for clear visual hierarchy
 - **Contrast**: Minimum 4.5:1 contrast ratio for accessibility compliance
 - **UI Elements**: All buttons, inputs, and text styled for dark theme consistency
+
+### PermissionChecker & Status Badge
+Automatic startup validation with visual feedback:
+- **Permission Validation**: Checks required permissions (INTERNET, RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE, SYSTEM_ALERT_WINDOW)
+- **AccessibilityService Check**: Verifies if AccessibilityService is enabled via Settings.Secure API
+- **Startup Check**: Runs automatically when app launches
+- **Status Badge**: 24dp circular indicator next to app title
+  - **Green**: All permissions granted AND AccessibilityService enabled = App is ready
+  - **Red**: Missing permissions OR AccessibilityService disabled = User action needed
+- **Log Details**: Detailed permission status logged for each check with visual indicators (✓/✗)
+- **Dynamic Checking**: Non-intrusive - checks on startup without blocking app functionality
 
 ## Permissions Required
 

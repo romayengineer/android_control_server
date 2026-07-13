@@ -1,6 +1,7 @@
 package com.romayengineer.controlserver
 
 import android.content.Intent
+import android.graphics.PorterDuff
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
@@ -9,6 +10,7 @@ import android.os.Looper
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.romayengineer.controlserver.service.WiFiMouseService
@@ -45,11 +47,16 @@ class MainActivity : AppCompatActivity() {
         val statusText = findViewById<TextView>(R.id.status_text)
         val ipAddressText = findViewById<TextView>(R.id.ip_address_text)
         val logText = findViewById<TextView>(R.id.log_text)
+        val statusBadge = findViewById<View>(R.id.status_badge)
 
         cursorView = findViewById<CursorView>(R.id.cursor_view)
 
         LogManager.setLogTextView(logText)
         LogManager.i("App started")
+
+        // Run startup permission check
+        val startupStatus = PermissionChecker.runStartupCheck(this)
+        updateStatusBadge(statusBadge, startupStatus)
 
         portEditText.setText(WiFiMouseService.DEFAULT_PORT.toString())
         displayLocalIpAddress(ipAddressText)
@@ -96,5 +103,17 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             null
         }
+    }
+
+    private fun updateStatusBadge(badge: View, status: PermissionChecker.StartupStatus) {
+        val color = if (status.isReady) {
+            LogManager.d("Startup check PASSED - All permissions OK")
+            android.graphics.Color.GREEN
+        } else {
+            LogManager.w("Startup check FAILED - Missing permissions or AccessibilityService")
+            android.graphics.Color.RED
+        }
+
+        badge.background?.setColorFilter(color, PorterDuff.Mode.SRC_IN)
     }
 }
