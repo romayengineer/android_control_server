@@ -16,8 +16,10 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Extensible Architecture**: Interface-based design allows multiple input injection backends
 - **AccessibilityService Support**: Non-root click and scroll via Android AccessibilityService API
 - **Dual Input Methods**: AccessibilityService (preferred) with RootInputController fallback
-- **Visual Cursor**: Real-time cursor display with crosshair design - visible on app screen
-- **Cursor Tracking**: Cursor position updates automatically with mouse movement commands
+- **System-wide Cursor Overlay**: Real-time red crosshair cursor visible across ALL apps - not just in the control app
+- **Live Cursor Tracking**: Cursor automatically moves to target position before executing clicks or scrolls (natural mouse behavior)
+- **Persistent Cursor**: Overlay service keeps cursor visible even when app is backgrounded or other apps are active
+- **Auto-restart on Crash**: Uses START_STICKY and KeepAliveJobService to automatically restart if killed
 - **Debug Logging**: Detailed logs for troubleshooting command execution
 
 ## Architecture
@@ -172,13 +174,20 @@ Once enabled, the app will automatically use AccessibilityService for click and 
    - If server is already running on the configured port, it will restart cleanly
    - Tap "Start Server" button to manually restart with a different port
 
+4. **Automatic Recovery**:
+   - Server automatically restarts if the app crashes
+   - Service recovers automatically if force-stopped by user
+   - KeepAliveJobService monitors and restarts services every 15 minutes
+   - No manual intervention needed - server will resume working
+
 ### Cursor Display
 
-The app features a real-time cursor display:
-- **Visible Cursor**: Red circular crosshair appears on the app screen
+The app features a system-wide real-time cursor display:
+- **System-wide Overlay**: Red circular crosshair visible across all apps on the device
 - **Live Tracking**: Cursor moves instantly when you send mouse movement commands
-- **Non-intrusive**: Overlays on top of the UI without blocking buttons or text
-- **Always Visible**: Shows your current mouse position on the projector
+- **Natural Behavior**: Cursor automatically moves to target position BEFORE clicking or scrolling
+- **Persistent**: Remains visible even when the control app is backgrounded
+- **Non-intrusive**: Uses semi-transparent overlay that doesn't interfere with other apps
 
 ### Finding Your Projector's IP
 
@@ -253,7 +262,9 @@ android_control_server/
 │   │   │   │   └── ScrollDirection.kt                   # Enum for scroll directions
 │   │   │   ├── service/
 │   │   │   │   ├── WiFiMouseService.kt                  # Main service with LazyInputController
-│   │   │   │   └── ControlServerAccessibilityService.kt # AccessibilityService implementation
+│   │   │   │   ├── OverlayService.kt                    # System-wide cursor overlay
+│   │   │   │   ├── ControlServerAccessibilityService.kt # AccessibilityService implementation
+│   │   │   │   └── KeepAliveJobService.kt               # Periodic service health check & restart
 │   │   │   ├── network/
 │   │   │   │   └── ServerSocket.kt                      # TCP server & command parser
 │   │   │   ├── receiver/
@@ -341,6 +352,22 @@ Custom Android View for visual cursor display:
 - **Layout Integration**: Overlay view on top of control UI without interference
 - **No Performance Impact**: Lightweight drawing using Canvas API
 
+### OverlayService
+System-wide cursor overlay service:
+- **WindowManager Integration**: Creates system-wide overlay window visible on all apps
+- **Non-blocking**: Uses FLAG_NOT_TOUCHABLE and FLAG_NOT_FOCUSABLE for transparency
+- **Persistent**: Survives app backgrounding, continues showing cursor position
+- **Automatic Restart**: Uses START_STICKY_COMPATIBILITY for crash recovery
+- **Single Instance**: Managed by WiFiMouseService, ensures only one overlay exists
+
+### KeepAliveJobService
+Background job service for service health monitoring:
+- **Periodic Checks**: Runs every 15 minutes to verify services are running
+- **Auto-restart**: Automatically restarts WiFiMouseService or OverlayService if crashed
+- **Battery Efficient**: Uses JobScheduler for system-optimized periodic execution
+- **Boot Persistence**: Automatically scheduled when device boots
+- **Reliable Recovery**: Ensures server continues running even after multiple crashes
+
 ## Permissions Required
 
 ```xml
@@ -350,6 +377,7 @@ Custom Android View for visual cursor display:
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 <uses-permission android:name="android.permission.INJECT_EVENTS" />
 <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
+<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 ```
 
 **Permission Details:**
@@ -358,9 +386,16 @@ Custom Android View for visual cursor display:
 - `FOREGROUND_SERVICE`: Required to run as foreground service
 - `INJECT_EVENTS`: Optional - used by RootInputController for shell-based input injection
 - `BIND_ACCESSIBILITY_SERVICE`: Required to declare AccessibilityService
+- `SYSTEM_ALERT_WINDOW`: Required for system-wide overlay cursor (may need grant via ADB or device settings)
 
 **Accessibility Service Enabling:**
 No special manifest permission grant is needed. Users enable the service through device Settings → Accessibility.
+
+**Overlay Permission on Android 11+:**
+On some devices, the overlay permission requires manual grant:
+```bash
+adb shell pm grant com.romayengineer.controlserver android.permission.SYSTEM_ALERT_WINDOW
+```
 
 ## Future Enhancements
 
@@ -369,11 +404,13 @@ No special manifest permission grant is needed. Users enable the service through
 - **Cursor Customization**: Selectable cursor styles, colors, and sizes
 - **Click Animation**: Visual feedback when clicks are executed
 - **Gesture Trails**: Show movement paths during extended operations
+- **Tap Hold Support**: Long-press gestures via AccessibilityService
 - **Authentication**: Optional password/token authentication for security
 - **Device Discovery**: mDNS/Bonjour service discovery
 - **Multi-touch Gestures**: Two-finger tap, pinch, and rotate via AccessibilityService
-- **Configuration UI**: Web-based admin panel for settings and cursor preferences
+- **Configuration UI**: Mobile app settings panel for cursor preferences and server configuration
 - **Advanced Logging**: Detailed activity logging and audit trail
+- **Network Compression**: Reduce bandwidth for slow connections
 
 ## Troubleshooting
 
@@ -394,6 +431,14 @@ No special manifest permission grant is needed. Users enable the service through
 - Verify firewall isn't blocking port 3934
 - Confirm projector and client are on same WiFi network
 - Use adb port forwarding for testing: `adb forward tcp:3934 tcp:3934`
+
+### App Crashed or Force-Stopped
+
+Don't worry! The app includes automatic recovery:
+- Service automatically restarts if the app crashes
+- If you force-stop the app, just send a command and the server will auto-restart
+- KeepAliveJobService runs every 15 minutes to ensure services stay running
+- You can verify recovery by checking logcat for "Service started" messages
 
 ### Debugging with Logcat
 
