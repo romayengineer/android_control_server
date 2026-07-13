@@ -8,10 +8,13 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Full Input Support**: Mouse movement, clicks, keyboard input, and text typing
 - **Multi-button Support**: Left, right, and middle mouse buttons
 - **Keyboard Events**: Support for all Android KeyEvent codes
-- **Auto-start Service**: Server automatically starts on device boot
+- **Auto-start Server**: Server starts automatically when app opens - no setup needed
+- **Smart Restart**: Detects and cleanly restarts existing server instances
+- **Auto-start on Boot**: Server automatically starts when device boots
 - **Persistent Service**: Uses foreground service with automatic restart on crash
 - **Concurrent Clients**: Multiple client connections supported simultaneously
 - **Extensible Architecture**: Interface-based design allows multiple input injection backends
+- **Debug Logging**: Detailed logs for troubleshooting command execution
 
 ## Architecture
 
@@ -134,15 +137,18 @@ pm grant com.romayengineer.controlserver android.permission.INTERNET
 
 ### Starting the Server
 
-1. **Via App UI**:
-   - Open the WiFi Mouse Server app
-   - Optionally change the port (default: 3934)
-   - Tap "Start Server"
-   - Note the projector's IP address
+1. **Automatic**:
+   - Server starts automatically when you open the WiFi Mouse Server app
+   - No need to click any button - it's ready to use immediately
+   - Note the projector's IP address displayed on screen
 
 2. **Auto-start on Boot**:
    - Server automatically starts when device boots
    - Runs as foreground service with persistent notification
+
+3. **Smart Restart**:
+   - If server is already running on the configured port, it will restart cleanly
+   - Tap "Start Server" button to manually restart with a different port
 
 ### Finding Your Projector's IP
 
@@ -242,7 +248,12 @@ android_control_server/
 Abstract interface defining all input operations:
 - `moveMouse(x: Int, y: Int): Boolean`
 - `clickMouse(button: MouseButton): Boolean`
+- `clickMouse(x: Int, y: Int, button: MouseButton): Boolean` - Click at specific coordinates
+- `pressMouse(button: MouseButton): Boolean`
+- `releaseMouse(button: MouseButton): Boolean`
+- `scrollMouse(x: Int, y: Int, direction: ScrollDirection, distance: Int): Boolean`
 - `pressKey(keyCode: Int): Boolean`
+- `releaseKey(keyCode: Int): Boolean`
 - `typeText(text: String): Boolean`
 - And more...
 
@@ -250,10 +261,12 @@ Abstract interface defining all input operations:
 Uses Android's `input` shell command to inject events system-wide:
 ```kotlin
 input mousemove 500 300
-input tap 1
+input tap 500 300
 input keyevent 4
 input text "Hello"
 ```
+
+**Note**: The `tap` command directly injects touch events without requiring button codes.
 
 ### WiFiMouseService
 - Implements `Service` interface
@@ -274,7 +287,10 @@ input text "Hello"
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.INJECT_EVENTS" />
 ```
+
+**Note**: The `INJECT_EVENTS` permission requires the device to have appropriate system configuration. On emulators and devices without system-level access, use the `input` shell command approach (which is already implemented).
 
 ## Future Enhancements
 
@@ -292,16 +308,32 @@ input text "Hello"
 - Ensure device has root access or developer mode enabled
 - Check that port 3934 is not in use by another app
 - Verify INTERNET permission is granted
+- Check logcat for startup errors: `adb logcat | grep WiFiMouseService`
 
 ### Commands not executing
 - Confirm `input` command is available: `adb shell input --help`
 - Check device has necessary permissions
 - Verify client is sending valid JSON format
+- View detailed logs: `adb logcat | grep -E "ServerSocket|RootInputController"`
 
 ### Connection refused
 - Ensure server is running (check foreground service notification)
 - Verify firewall isn't blocking port 3934
 - Confirm projector and client are on same WiFi network
+- Use adb port forwarding for testing: `adb forward tcp:3934 tcp:3934`
+
+### Debugging with Logcat
+
+Enable detailed debugging by running:
+```bash
+adb logcat -v threadtime | grep -E "ServerSocket|RootInputController|WiFiMouseService"
+```
+
+This will show:
+- Commands received from client
+- Command execution results
+- Shell command output and errors
+- Connection lifecycle events
 
 ## Contributing
 

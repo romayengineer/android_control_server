@@ -71,25 +71,35 @@ class ServerSocket(
 
     private fun processCommand(jsonString: String): String {
         return try {
+            Log.d(TAG, "Processing command: $jsonString")
             val json = JsonParser.parseString(jsonString).asJsonObject
             val command = json.get("command").asString
+            Log.d(TAG, "Command type: $command")
 
             val success = when (command) {
                 "mousemove" -> {
                     val x = json.get("x").asInt
                     val y = json.get("y").asInt
+                    Log.d(TAG, "Executing mousemove($x, $y)")
                     inputController.moveMouse(x, y)
                 }
                 "click" -> {
+                    val x = json.get("x")?.asInt ?: 500
+                    val y = json.get("y")?.asInt ?: 500
                     val button = json.get("button")?.asString?.let { MouseButton.valueOf(it) } ?: MouseButton.LEFT
-                    inputController.clickMouse(button)
+                    Log.d(TAG, "Executing click($x, $y, $button)")
+                    val result = inputController.clickMouse(x, y, button)
+                    Log.d(TAG, "Click result: $result")
+                    result
                 }
                 "mousedown" -> {
                     val button = json.get("button")?.asString?.let { MouseButton.valueOf(it) } ?: MouseButton.LEFT
+                    Log.d(TAG, "Executing mousedown($button)")
                     inputController.pressMouse(button)
                 }
                 "mouseup" -> {
                     val button = json.get("button")?.asString?.let { MouseButton.valueOf(it) } ?: MouseButton.LEFT
+                    Log.d(TAG, "Executing mouseup($button)")
                     inputController.releaseMouse(button)
                 }
                 "scroll" -> {
@@ -97,27 +107,36 @@ class ServerSocket(
                     val y = json.get("y").asInt
                     val direction = ScrollDirection.valueOf(json.get("direction").asString)
                     val distance = json.get("distance")?.asInt ?: 5
+                    Log.d(TAG, "Executing scroll($x, $y, $direction, $distance)")
                     inputController.scrollMouse(x, y, direction, distance)
                 }
                 "keypress" -> {
                     val keyCode = json.get("keycode").asInt
+                    Log.d(TAG, "Executing keypress($keyCode)")
                     inputController.pressKey(keyCode)
                 }
                 "keydown" -> {
                     val keyCode = json.get("keycode").asInt
+                    Log.d(TAG, "Executing keydown($keyCode)")
                     inputController.pressKey(keyCode)
                 }
                 "keyup" -> {
                     val keyCode = json.get("keycode").asInt
+                    Log.d(TAG, "Executing keyup($keyCode)")
                     inputController.releaseKey(keyCode)
                 }
                 "text" -> {
                     val text = json.get("text").asString
+                    Log.d(TAG, "Executing typeText($text)")
                     inputController.typeText(text)
                 }
-                else -> false
+                else -> {
+                    Log.w(TAG, "Unknown command: $command")
+                    false
+                }
             }
 
+            Log.d(TAG, "Command execution result: $success")
             val response = JsonObject()
             response.addProperty("success", success)
             response.addProperty("command", command)

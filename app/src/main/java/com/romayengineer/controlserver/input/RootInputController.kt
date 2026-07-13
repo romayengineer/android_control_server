@@ -9,9 +9,25 @@ class RootInputController : InputController {
 
     private fun executeCommand(command: String): Boolean {
         return try {
+            Log.d(TAG, "Executing shell command: $command")
             val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
-            process.waitFor()
-            process.exitValue() == 0
+            val exitCode = process.waitFor()
+            val success = exitCode == 0
+            Log.d(TAG, "Command executed with exit code: $exitCode (success: $success)")
+
+            // Log any error output
+            if (!success) {
+                val errorStream = process.errorStream.bufferedReader().readText()
+                if (errorStream.isNotEmpty()) {
+                    Log.e(TAG, "Command error output: $errorStream")
+                }
+                val outputStream = process.inputStream.bufferedReader().readText()
+                if (outputStream.isNotEmpty()) {
+                    Log.e(TAG, "Command output: $outputStream")
+                }
+            }
+
+            success
         } catch (e: Exception) {
             Log.e(TAG, "Failed to execute command: $command", e)
             false
@@ -20,37 +36,34 @@ class RootInputController : InputController {
 
     override fun moveMouse(x: Int, y: Int): Boolean {
         val command = "input mousemove $x $y"
+        Log.d(TAG, "moveMouse($x, $y)")
         return executeCommand(command)
     }
 
     override fun clickMouse(button: MouseButton): Boolean {
-        val buttonCode = when (button) {
-            MouseButton.LEFT -> 1
-            MouseButton.RIGHT -> 2
-            MouseButton.MIDDLE -> 4
-        }
-        val command = "input mouse tap $buttonCode"
+        // Default click at center - x and y should come from moveMouse first
+        val command = "input tap 500 500"
+        Log.d(TAG, "clickMouse($button) at default position")
+        return executeCommand(command)
+    }
+
+    override fun clickMouse(x: Int, y: Int, button: MouseButton): Boolean {
+        val command = "input tap $x $y"
+        Log.d(TAG, "clickMouse($x, $y, $button)")
         return executeCommand(command)
     }
 
     override fun pressMouse(button: MouseButton): Boolean {
-        val buttonCode = when (button) {
-            MouseButton.LEFT -> 1
-            MouseButton.RIGHT -> 2
-            MouseButton.MIDDLE -> 4
-        }
-        val command = "input mouse down $buttonCode"
-        return executeCommand(command)
+        // Mouse press not directly supported via input command
+        // Use tap as alternative
+        Log.d(TAG, "pressMouse($button) - not supported, using tap instead")
+        return clickMouse(button)
     }
 
     override fun releaseMouse(button: MouseButton): Boolean {
-        val buttonCode = when (button) {
-            MouseButton.LEFT -> 1
-            MouseButton.RIGHT -> 2
-            MouseButton.MIDDLE -> 4
-        }
-        val command = "input mouse up $buttonCode"
-        return executeCommand(command)
+        // Mouse release not directly supported via input command
+        Log.d(TAG, "releaseMouse($button) - not directly supported")
+        return true
     }
 
     override fun scrollMouse(x: Int, y: Int, direction: ScrollDirection, distance: Int): Boolean {

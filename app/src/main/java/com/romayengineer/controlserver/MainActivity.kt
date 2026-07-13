@@ -28,18 +28,12 @@ class MainActivity : AppCompatActivity() {
         portEditText.setText(WiFiMouseService.DEFAULT_PORT.toString())
         displayLocalIpAddress(ipAddressText)
 
+        // Auto-start the server
+        startServer(WiFiMouseService.DEFAULT_PORT, statusText)
+
         startButton.setOnClickListener {
             val port = portEditText.text.toString().toIntOrNull() ?: WiFiMouseService.DEFAULT_PORT
-            val serviceIntent = Intent(this, WiFiMouseService::class.java)
-            serviceIntent.putExtra(WiFiMouseService.KEY_PORT, port)
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ContextCompat.startForegroundService(this, serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
-
-            statusText.text = "Server started on port $port"
+            startServer(port, statusText)
         }
 
         stopButton.setOnClickListener {
@@ -47,6 +41,19 @@ class MainActivity : AppCompatActivity() {
             stopService(serviceIntent)
             statusText.text = "Server stopped"
         }
+    }
+
+    private fun startServer(port: Int, statusText: TextView) {
+        val serviceIntent = Intent(this, WiFiMouseService::class.java)
+        serviceIntent.putExtra(WiFiMouseService.KEY_PORT, port)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ContextCompat.startForegroundService(this, serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
+
+        statusText.text = "Server started on port $port"
     }
 
     private fun displayLocalIpAddress(textView: TextView) {

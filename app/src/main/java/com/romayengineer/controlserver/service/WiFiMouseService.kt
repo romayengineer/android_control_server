@@ -65,9 +65,16 @@ class WiFiMouseService : Service() {
     }
 
     private fun startServer(port: Int) {
+        // Stop existing server if running
         if (serverThread?.isAlive == true) {
-            Log.d(TAG, "Server already running")
-            return
+            Log.d(TAG, "Stopping existing server")
+            serverSocket?.stop()
+            serverThread?.interrupt()
+            try {
+                serverThread?.join(1000)
+            } catch (e: InterruptedException) {
+                Log.e(TAG, "Interrupted while waiting for server thread", e)
+            }
         }
 
         serverThread = thread(isDaemon = false) {

@@ -3,6 +3,7 @@ package com.romayengineer.controlserver.input
 interface InputController {
     fun moveMouse(x: Int, y: Int): Boolean
     fun clickMouse(button: MouseButton = MouseButton.LEFT): Boolean
+    fun clickMouse(x: Int, y: Int, button: MouseButton = MouseButton.LEFT): Boolean
     fun pressMouse(button: MouseButton = MouseButton.LEFT): Boolean
     fun releaseMouse(button: MouseButton = MouseButton.LEFT): Boolean
     fun scrollMouse(x: Int, y: Int, direction: ScrollDirection, distance: Int): Boolean
