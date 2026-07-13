@@ -7,7 +7,7 @@
 	}
 
 	let config: Config = {
-		serverIp: localStorage.getItem('serverIp') || '192.168.1.100',
+		serverIp: localStorage.getItem('serverIp') || '192.168.0.100',
 		serverPort: parseInt(localStorage.getItem('serverPort') || '3935')
 	};
 
@@ -20,7 +20,6 @@
 
 	const CIRCLE_RADIUS = 80;
 	const CONTAINER_SIZE = 300;
-	const THROTTLE_DELAY = 50; // Send movement updates every 50ms while dragging
 	const SENSITIVITY_FACTOR = 0.05; // Range: 0.1 (slow) to 1.0 (fast), 0.4 = 40% of max speed
 	const RECONNECT_INTERVAL = 3000; // Reconnect every 3 seconds
 
@@ -29,10 +28,9 @@
 	let cursorX: number = 0;
 	let cursorY: number = 0;
 	let statusMessage: string = 'Disconnected';
-	let lastSendTime: number = 0;
-	let pendingCommand: Record<string, unknown> | null = null;
-	let sendTimer: ReturnType<typeof setTimeout> | null = null;
-	let isWaitingForResponse: boolean = false;
+	let commandQueue: Record<string, unknown>[] = [];
+	let queueProcessor: ReturnType<typeof setInterval> | null = null;
+	const QUEUE_CHECK_INTERVAL = 1000;
 
 	function startReconnectTimer(): void {
 		if (reconnectTimer) return;
@@ -66,21 +64,13 @@
 				localStorage.setItem('serverIp', config.serverIp);
 				localStorage.setItem('serverPort', config.serverPort.toString());
 				stopReconnectTimer();
+				startQueueProcessor();
 				console.log('✅ WebSocket connected to', url);
 			};
 
 			ws.onmessage = (event: MessageEvent) => {
 				const response = JSON.parse(event.data);
 				console.log('📥 Server response:', response);
-				isWaitingForResponse = false;
-
-				// Send pending command if any
-				if (pendingCommand && isDragging) {
-					console.log('📨 Sending pending command');
-					sendCommand(pendingCommand);
-					pendingCommand = null;
-					isWaitingForResponse = true;
-				}
 			};
 
 			ws.onerror = (error) => {
@@ -94,6 +84,7 @@
 
 			ws.onclose = () => {
 				isConnected = false;
+				stopQueueProcessor();
 				if (!userInitiatedDisconnect) {
 					statusMessage = 'Reconnecting...';
 					console.log('🔌 WebSocket disconnected, attempting to reconnect');
@@ -129,46 +120,86 @@
 			const jsonCommand = JSON.stringify(command);
 			console.log('📤 Event sent:', command);
 			ws.send(jsonCommand);
+			// remove command only after it was successfully sent
+			commandQueue.shift();
 		}
 	}
 
-	function sendCommandThrottled(command: Record<string, unknown>): void {
-		// If waiting for response, queue the command
-		if (isWaitingForResponse) {
-			pendingCommand = command;
-			console.log('⏳ Waiting for response, queueing command');
+	function getLastComand(): Record<string, unknown> | undefined {
+		if (commandQueue.length > 0) {
+			return commandQueue[commandQueue.length - 1]
+		}
+	}
+
+	function shouldMergeMouseMove(command: Record<string, unknown>): boolean {
+		return (
+			command.command === 'mousemove' &&
+			getLastComand()?.command === 'mousemove'
+		)
+	}
+
+	function mergeMouseMove(command: Record<string, unknown>): void {
+		const lastCommand = getLastComand();
+		if (!lastCommand) return;
+
+		const lastDx = (lastCommand.dx as number) || 0;
+		const lastDy = (lastCommand.dy as number) || 0;
+		let newDx = (command.dx as number) || 0;
+		let newDy = (command.dy as number) || 0;
+
+		// Calculate time interval and scale movement accordingly
+		const lastTimestamp = (lastCommand.timestamp as number) || Date.now();
+		const currentTimestamp = (command.timestamp as number) || Date.now();
+		const timeIntervalMs = Math.max(currentTimestamp - lastTimestamp, 1); // Avoid division by zero
+		const timeIntervalSec = timeIntervalMs / 1000;
+
+		newDx *= timeIntervalSec;
+		newDy *= timeIntervalSec;
+
+		lastCommand.dx = lastDx + newDx;
+		lastCommand.dy = lastDy + newDy;
+		console.log('🔄 Merged move command: dx=' + (lastCommand.dx as number).toFixed(2) + ', dy=' + (lastCommand.dy as number).toFixed(2) + ', time=' + timeIntervalMs + 'ms');
+	}
+
+	function pushCommand(command: Record<string, unknown>): void {
+		// Add timestamp to command
+		command.timestamp = Date.now();
+
+		// Check if last queued command is a move command and new command is also a move command
+		if (shouldMergeMouseMove(command)) {
+			mergeMouseMove(command);
+		} else {
+			commandQueue.push(command);
+			console.log('📋 Command queued. Queue length:', commandQueue.length);
+		}
+	}
+
+	function processQueue(): void {
+		if (commandQueue.length === 0 || !isConnected) {
 			return;
 		}
 
-		pendingCommand = command;
-		const now = Date.now();
-		const timeSinceLastSend = now - lastSendTime;
-
-		// If enough time has passed, send immediately
-		if (timeSinceLastSend >= THROTTLE_DELAY) {
+		const command = commandQueue[0];
+		if (command) {
 			sendCommand(command);
-			lastSendTime = now;
-			pendingCommand = null;
-			isWaitingForResponse = true;
+		}
+	}
 
-			// Clear any pending timer
-			if (sendTimer) {
-				clearTimeout(sendTimer);
-				sendTimer = null;
-			}
-		} else {
-			// Schedule a send for the next throttle window
-			if (!sendTimer) {
-				sendTimer = setTimeout(() => {
-					if (pendingCommand && ws && isConnected && ws.readyState === WebSocket.OPEN && !isWaitingForResponse) {
-						sendCommand(pendingCommand);
-						lastSendTime = Date.now();
-						pendingCommand = null;
-						isWaitingForResponse = true;
-					}
-					sendTimer = null;
-				}, THROTTLE_DELAY - timeSinceLastSend);
-			}
+	function startQueueProcessor(): void {
+		if (queueProcessor) return;
+
+		queueProcessor = setInterval(() => {
+			processQueue();
+		}, QUEUE_CHECK_INTERVAL);
+
+		console.log('▶️ Queue processor started');
+	}
+
+	function stopQueueProcessor(): void {
+		if (queueProcessor) {
+			clearInterval(queueProcessor);
+			queueProcessor = null;
+			console.log('⏹️ Queue processor stopped');
 		}
 	}
 
@@ -209,7 +240,7 @@
 			const relativeX = Math.round(baseX * SENSITIVITY_FACTOR);
 			const relativeY = Math.round(baseY * SENSITIVITY_FACTOR);
 
-			sendCommandThrottled({
+			pushCommand({
 				command: 'mousemove',
 				dx: relativeX,
 				dy: relativeY
@@ -218,10 +249,8 @@
 	}
 
 	function onClick(): void {
-		if (isWaitingForResponse) return;
 		console.log('🖱️ Left click');
-		isWaitingForResponse = true;
-		sendCommand({
+		pushCommand({
 			command: 'click',
 			button: 'LEFT'
 		});
@@ -229,10 +258,8 @@
 
 	function onContextMenu(event: MouseEvent): void {
 		event.preventDefault();
-		if (isWaitingForResponse) return;
 		console.log('🖱️ Right click');
-		isWaitingForResponse = true;
-		sendCommand({
+		pushCommand({
 			command: 'click',
 			button: 'RIGHT'
 		});
@@ -249,9 +276,7 @@
 	});
 
 	onDestroy(() => {
-		if (sendTimer) {
-			clearTimeout(sendTimer);
-		}
+		stopQueueProcessor();
 		stopReconnectTimer();
 		disconnectWebSocket();
 	});

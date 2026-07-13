@@ -36,6 +36,7 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Connection Resilience**: Smart reconnection only activates after successful initial connection, not on failed first attempts
 - **Smart Click Positioning**: Click commands without coordinates execute at current cursor position instead of resetting to origin
 - **Unified Command Processing**: Centralized CommandProcessor eliminates code duplication between TCP and WebSocket servers
+- **Time-based Movement Scaling**: Mouse movements are scaled by time intervals, smoothing acceleration based on command frequency for natural motion
 
 ## Architecture
 
