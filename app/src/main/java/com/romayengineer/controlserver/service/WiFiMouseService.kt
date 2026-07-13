@@ -13,6 +13,7 @@ import com.romayengineer.controlserver.R
 import com.romayengineer.controlserver.input.InputController
 import com.romayengineer.controlserver.input.RootInputController
 import com.romayengineer.controlserver.network.ServerSocket
+import com.romayengineer.controlserver.network.WebSocketServer
 import kotlin.concurrent.thread
 
 class WiFiMouseService : Service() {
@@ -25,8 +26,10 @@ class WiFiMouseService : Service() {
     }
 
     private var serverSocket: ServerSocket? = null
+    private var webSocketServer: WebSocketServer? = null
     private var fallbackController: InputController? = null
     private var serverThread: Thread? = null
+    private var webSocketThread: Thread? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -79,9 +82,9 @@ class WiFiMouseService : Service() {
     }
 
     private fun startServer(port: Int) {
-        // Stop existing server if running
+        // Stop existing servers if running
         if (serverThread?.isAlive == true) {
-            LogManager.d("Stopping existing server")
+            LogManager.d("Stopping existing TCP server")
             serverSocket?.stop()
             serverThread?.interrupt()
             try {
@@ -91,22 +94,56 @@ class WiFiMouseService : Service() {
             }
         }
 
+        if (webSocketThread?.isAlive == true) {
+            LogManager.d("Stopping existing WebSocket server")
+            try {
+                webSocketServer?.stop()
+                webSocketThread?.interrupt()
+                webSocketThread?.join(1000)
+            } catch (e: Exception) {
+                LogManager.e("Error stopping WebSocket server: ${e.message}", e)
+            }
+        }
+
+        // Start TCP server
         serverThread = thread(isDaemon = false) {
             try {
                 // Create a lazy controller that checks for AccessibilityService on each command
                 val controller = LazyInputController(fallbackController!!)
                 serverSocket = ServerSocket(port, controller)
                 serverSocket?.start()
-                LogManager.d("Server started on port $port")
+                LogManager.d("TCP server started on port $port")
             } catch (e: Exception) {
-                LogManager.e("Failed to start server: ${e.message}", e)
+                LogManager.e("Failed to start TCP server: ${e.message}", e)
+            }
+        }
+
+        // Start WebSocket server on next port
+        val wsPort = port + 1
+        webSocketThread = thread(isDaemon = false) {
+            try {
+                val controller = LazyInputController(fallbackController!!)
+                webSocketServer = WebSocketServer(wsPort, controller)
+                webSocketServer?.start()
+                LogManager.d("WebSocket server started on port $wsPort")
+            } catch (e: Exception) {
+                LogManager.e("Failed to start WebSocket server: ${e.message}", e)
             }
         }
     }
 
     override fun onDestroy() {
         LogManager.d("Service destroyed")
-        serverSocket?.stop()
+        try {
+            serverSocket?.stop()
+        } catch (e: Exception) {
+            LogManager.e("Error stopping TCP server: ${e.message}", e)
+        }
+        try {
+            webSocketServer?.stop()
+        } catch (e: Exception) {
+            LogManager.e("Error stopping WebSocket server: ${e.message}", e)
+        }
         fallbackController?.shutdown()
         super.onDestroy()
     }

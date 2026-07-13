@@ -30,21 +30,37 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Automated Build & Install**: PowerShell scripts for Windows - build, auto-connect, install, and launch in one command
 - **Device Auto-Connect**: Automatically connects to offline/unauthorized devices before installation
 - **Smart Device Detection**: Handles device names with spaces and multiple connected devices
+- **WebSocket Server**: Browser-based control via WebSocket protocol on port 3935 (TCP 3934 + WebSocket 3935 run simultaneously)
+- **Dual Protocol Support**: Same JSON command format works over both TCP and WebSocket connections
 
 ## Architecture
 
-The project consists of two main components:
+The project consists of a flexible multi-protocol server supporting both traditional TCP and modern WebSocket connections:
 
 ### Server (Android Projector)
-- Listens on TCP port 3934 for incoming client connections
-- Accepts JSON-formatted commands
-- Injects input events into the Android system
-- Runs as a persistent foreground service
+Runs two parallel network servers simultaneously:
 
-### Client (Android Phone) - Coming Soon
-- Sends touch trackpad events to the server
-- Provides a virtual touchpad interface
-- Communicates via TCP/JSON protocol
+**TCP Server** - Port 3934
+- Traditional socket-based communication
+- Accepts JSON-formatted commands
+- Single connection per client
+
+**WebSocket Server** - Port 3935
+- Browser-based control support
+- Supports multiple concurrent client connections
+- Same JSON command format as TCP
+- Perfect for web clients (Svelte, React, Vue, etc.) running in browser
+
+Both servers:
+- Inject input events into the Android system
+- Run as part of persistent foreground service
+- Use shared InputController for unified command handling
+- Return JSON responses with success status
+
+### Client Options - Multiple Protocols
+- **TCP Client**: Native Android app or shell scripts sending JSON over TCP port 3934
+- **WebSocket Client**: Browser-based app (HTML/Svelte/React/Vue) connecting via WebSocket to port 3935
+- **Mixed**: Multiple clients can connect simultaneously over different protocols
 
 ## Requirements
 
@@ -361,9 +377,16 @@ ifconfig wlan0
 
 ### Connecting from Client
 
-The client connects to the server via:
+**TCP Connection** (traditional socket):
 - **Host**: Projector IP address (e.g., 192.168.1.100)
 - **Port**: 3934 (or custom port configured)
+- Use raw socket or netcat: `nc 192.168.1.100 3934`
+
+**WebSocket Connection** (for browser clients):
+- **URL**: `ws://192.168.1.100:3935` (or custom port + 1)
+- **JavaScript Example**: `new WebSocket('ws://192.168.1.100:3935')`
+- Perfect for Svelte, React, or vanilla HTML/JavaScript web clients
+- Supports multiple concurrent connections
 
 ### Client Scripts
 
@@ -399,13 +422,75 @@ A collection of shell scripts are provided in the `scripts/` folder to control t
 
 See [SERVER_API.md](SERVER_API.md) for complete command reference and JSON message formats.
 
-### Quick Example (JSON)
+### Supported Commands (TCP and WebSocket)
 
+Both TCP and WebSocket servers accept the same JSON command format:
+
+**Mouse Control:**
 ```json
 {"command": "mousemove", "x": 500, "y": 300}
-{"command": "click", "button": "LEFT"}
-{"command": "text", "text": "Hello World"}
+{"command": "click", "x": 500, "y": 300, "button": "LEFT"}
+{"command": "scroll", "x": 500, "y": 300, "direction": "DOWN", "distance": 3}
+```
+
+**Keyboard Control:**
+```json
 {"command": "keypress", "keycode": 4}
+{"command": "text", "text": "Hello World"}
+```
+
+### TCP Connection Example
+
+Using shell script to send raw JSON over TCP:
+```bash
+./scripts/mouse_event.sh move 500 300
+./scripts/mouse_event.sh click 500 300 LEFT
+```
+
+### WebSocket Connection Example
+
+Using JavaScript in a browser client:
+```javascript
+const ws = new WebSocket('ws://192.168.1.100:3935');
+
+ws.onopen = () => {
+    // Send mouse move command
+    ws.send(JSON.stringify({
+        command: 'mousemove',
+        x: 500,
+        y: 300
+    }));
+
+    // Send click command
+    ws.send(JSON.stringify({
+        command: 'click',
+        x: 500,
+        y: 300,
+        button: 'LEFT'
+    }));
+
+    // Type text
+    ws.send(JSON.stringify({
+        command: 'text',
+        text: 'Hello from WebSocket!'
+    }));
+};
+
+ws.onmessage = (event) => {
+    const response = JSON.parse(event.data);
+    console.log('Command result:', response.success, 'Command:', response.command);
+};
+
+ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+};
+```
+
+**Response Format (both TCP and WebSocket):**
+```json
+{"success": true, "command": "mousemove"}
+{"success": true, "command": "click"}
+{"success": false, "error": "Command execution failed"}
 ```
 
 ## Project Structure
@@ -427,7 +512,8 @@ android_control_server/
 │   │   │   │   ├── ControlServerAccessibilityService.kt # AccessibilityService implementation
 │   │   │   │   └── KeepAliveJobService.kt               # Periodic service health check & restart
 │   │   │   ├── network/
-│   │   │   │   └── ServerSocket.kt                      # TCP server & command parser
+│   │   │   │   ├── ServerSocket.kt                      # TCP server & command parser
+│   │   │   │   └── WebSocketServer.kt                   # WebSocket server for browser clients
 │   │   │   ├── receiver/
 │   │   │   │   └── BootReceiver.kt                      # Auto-start on boot
 │   │   │   ├── ui/
@@ -504,10 +590,15 @@ input text "Hello"
 **Note**: Requires INJECT_EVENTS permission and device-level access.
 
 ### WiFiMouseService
-- Implements `Service` interface
-- Starts foreground service on creation
-- Spawns ServerSocket thread to listen for connections
-- Uses `START_STICKY` for automatic restart
+Main Android service orchestrating network servers and input handling:
+- **Dual Servers**: Starts both TCP (port 3934) and WebSocket (port 3935) servers
+- **Parallel Execution**: Each server runs on separate thread for concurrent handling
+- **Shared Controller**: Both servers route commands to same LazyInputController
+- **Foreground Service**: Displays persistent notification and prevents killing
+- **Auto-restart**: Uses `START_STICKY` for automatic restart on crash
+- **Clean Shutdown**: Properly stops both servers in onDestroy()
+- **Thread Management**: Handles thread lifecycle, interruption, and cleanup
+- **Fallback Controller**: Maintains RootInputController as fallback input method
 
 ### ServerSocket
 - Accepts TCP connections on specified port
@@ -515,6 +606,25 @@ input text "Hello"
 - Parses JSON commands
 - Routes to InputController
 - Returns JSON responses
+
+### WebSocketServer
+Modern WebSocket implementation for browser-based clients:
+- **Port**: Runs on TCP port + 1 (default 3935)
+- **Concurrent Clients**: Supports multiple simultaneous WebSocket connections
+- **Same Commands**: Accepts identical JSON command format as TCP server
+- **JSON Parsing**: Uses Gson for automatic JSON serialization/deserialization
+- **Connection Lifecycle**: Logs client connections, disconnections, and errors
+- **Error Handling**: Returns JSON error responses with context on command failure
+- **Response Format**: Returns `{"success": true/false, "command": "type"}` after each command
+- **Input Injection**: Routes all commands to same InputController as TCP server
+- **Thread-safe**: Each WebSocket connection handled independently
+
+**Advantages over TCP:**
+- Native browser support (no custom client needed)
+- Bidirectional communication
+- Built-in connection management
+- Works with modern web frameworks (React, Vue, Svelte)
+- Perfect for real-time web UIs
 
 ### CursorView
 Custom Android View for visual cursor display:
