@@ -66,12 +66,18 @@ class WebSocketServer(
                     }
                 }
                 "click" -> {
-                    val x = command.get("x")?.asInt ?: 0
-                    val y = command.get("y")?.asInt ?: 0
                     val buttonStr = command.get("button")?.asString ?: "LEFT"
                     val button = MouseButton.valueOf(buttonStr)
-                    LogManager.d("Executing click($x, $y, $buttonStr)")
-                    inputController.clickMouse(x, y, button)
+
+                    if (command.has("x") && command.has("y")) {
+                        val x = command.get("x").asInt
+                        val y = command.get("y").asInt
+                        LogManager.d("Executing click($x, $y, $buttonStr)")
+                        inputController.clickMouse(x, y, button)
+                    } else {
+                        LogManager.d("Executing click at current position with button $buttonStr")
+                        inputController.clickMouse(button)
+                    }
                 }
                 "scroll" -> {
                     val x = command.get("x")?.asInt ?: 0

@@ -94,13 +94,21 @@ class ServerSocket(
                     }
                 }
                 "click" -> {
-                    val x = json.get("x")?.asInt ?: 500
-                    val y = json.get("y")?.asInt ?: 500
                     val button = json.get("button")?.asString?.let { MouseButton.valueOf(it) } ?: MouseButton.LEFT
-                    LogManager.d("Executing click($x, $y, $button)")
-                    val result = inputController.clickMouse(x, y, button)
-                    LogManager.d("Click result: $result")
-                    result
+
+                    if (json.has("x") && json.has("y")) {
+                        val x = json.get("x").asInt
+                        val y = json.get("y").asInt
+                        LogManager.d("Executing click($x, $y, $button)")
+                        val result = inputController.clickMouse(x, y, button)
+                        LogManager.d("Click result: $result")
+                        result
+                    } else {
+                        LogManager.d("Executing click at current position with button $button")
+                        val result = inputController.clickMouse(button)
+                        LogManager.d("Click result: $result")
+                        result
+                    }
                 }
                 "mousedown" -> {
                     val button = json.get("button")?.asString?.let { MouseButton.valueOf(it) } ?: MouseButton.LEFT
