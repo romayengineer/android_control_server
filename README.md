@@ -159,11 +159,41 @@ The client connects to the server via:
 - **Host**: Projector IP address (e.g., 192.168.1.100)
 - **Port**: 3934 (or custom port configured)
 
+### Client Scripts
+
+A collection of shell scripts are provided to control the server from macOS/Linux:
+
+#### mouse_event.sh - Unified Mouse Event Control
+
+```bash
+./mouse_event.sh <event_type> <x> <y> [button]
+```
+
+**Event Types:**
+- `move` - Move mouse to coordinates
+- `click` - Click at coordinates with optional button
+
+**Examples:**
+
+```bash
+# Move mouse to position
+./mouse_event.sh move 500 300
+
+# Left click (default)
+./mouse_event.sh click 500 300
+
+# Right click
+./mouse_event.sh click 500 300 RIGHT
+
+# Middle click
+./mouse_event.sh click 500 300 MIDDLE
+```
+
 ## API Documentation
 
 See [SERVER_API.md](SERVER_API.md) for complete command reference and JSON message formats.
 
-### Quick Example
+### Quick Example (JSON)
 
 ```json
 {"command": "mousemove", "x": 500, "y": 300}
