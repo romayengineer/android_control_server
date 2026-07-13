@@ -23,7 +23,7 @@ fi
 
 # Send mousemove command
 COMMAND="{\"command\": \"mousemove\", \"x\": $X, \"y\": $Y}"
-RESPONSE=$(echo "$COMMAND" | nc -w 1 "$PROJECTOR_IP" "$PORT" 2>/dev/null)
+RESPONSE=$(timeout 2 bash -c "echo '$COMMAND' | nc -q 1 '$PROJECTOR_IP' '$PORT'" 2>/dev/null)
 
 if [ $? -eq 0 ] && [ ! -z "$RESPONSE" ]; then
     echo "✓ Moved mouse to ($X, $Y)"
