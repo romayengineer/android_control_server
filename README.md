@@ -528,17 +528,24 @@ Modern dark UI implementation with carefully chosen colors:
 - **UI Elements**: All buttons, inputs, and text styled for dark theme consistency
 
 ### PermissionChecker & Status Badge
-Automatic startup validation with visual feedback and user guidance:
+Automatic startup validation with visual feedback and intelligent user guidance:
 
 **Startup Checks:**
 - **Permission Validation**: Checks required permissions (INTERNET, RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE, SYSTEM_ALERT_WINDOW)
 - **AccessibilityService Check**: Verifies if AccessibilityService is enabled via Settings.Secure API
-- **Startup Check**: Runs automatically when app launches
+- **Startup Check**: Runs automatically on app launch and when app returns from Settings
+
+**Intelligent Permission Dialogs:**
+- **Sequential Flow**: Dialogs appear one at a time - Display Over Other Apps dialog first, then Accessibility dialog
+- **Smart Detection**: Uses `Settings.canDrawOverlays()` to properly detect if SYSTEM_ALERT_WINDOW is already granted
+- **Non-persistent Dialogs**: Dialogs only appear if permission/service is actually missing - won't repeat if already enabled
+- **Auto re-check**: When user returns from Settings, app automatically re-checks and updates status without showing dialog again
+- **Direct Navigation**: "Open Settings" buttons take user directly to the specific settings page needed
 
 **Automatic Requests:**
-- **Permission Requests**: If any required permissions are missing, the app automatically shows the system permission dialog to request them
-- **Accessibility Service Dialog**: If AccessibilityService is not enabled, the app shows a helpful dialog with a direct "Open Settings" button to enable it
-- **Dynamic Badge Updates**: After granting permissions, the status badge automatically updates to reflect the new state
+- **Display Over Other Apps**: Dialog with direct link to Settings if overlay permission missing
+- **Accessibility Service**: Dialog with direct link to Accessibility settings if service not enabled
+- **Dynamic Badge Updates**: After granting permissions, status badge automatically updates to reflect new state
 
 **Status Badge:**
 - 24dp circular indicator next to app title
@@ -549,6 +556,7 @@ Automatic startup validation with visual feedback and user guidance:
 - Detailed permission status logged for each check with visual indicators (✓/✗)
 - Permission request results logged in real-time
 - Non-intrusive - checks on startup without blocking app functionality
+- Dialog state tracking prevents duplicate dialogs from appearing
 
 ## Permissions Required
 

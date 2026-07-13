@@ -41,6 +41,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var showingPermissionDialog = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -58,25 +60,63 @@ class MainActivity : AppCompatActivity() {
         LogManager.setLogTextView(logText)
         LogManager.i("App started")
 
-        // Run startup permission check
-        val startupStatus = PermissionChecker.runStartupCheck(this)
-        updateStatusBadge(statusBadge, startupStatus)
-
-        // Request missing permissions
-        if (!startupStatus.permissionsOk) {
-            requestMissingPermissions()
-        }
-
-        // Request accessibility service if not enabled
-        if (!startupStatus.accessibilityEnabled) {
-            showAccessibilityDialog()
-        }
+        checkPermissionsAndShowDialogs(statusBadge)
 
         portEditText.setText(WiFiMouseService.DEFAULT_PORT.toString())
         displayLocalIpAddress(ipAddressText)
 
+        setupButtonListeners()
+
         // Auto-start the server
         startServer(WiFiMouseService.DEFAULT_PORT, statusText)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Re-check permissions when app comes back into focus (after user returns from Settings)
+        val statusBadge = findViewById<View>(R.id.status_badge)
+        checkPermissionsAndShowDialogs(statusBadge)
+    }
+
+    private fun checkPermissionsAndShowDialogs(statusBadge: View) {
+        // Run startup permission check
+        val startupStatus = PermissionChecker.runStartupCheck(this)
+        updateStatusBadge(statusBadge, startupStatus)
+
+        // Check if SYSTEM_ALERT_WINDOW permission is missing
+        val overlayPermissionMissing = !hasOverlayPermission()
+
+        // Only show dialogs if not already showing one
+        if (!showingPermissionDialog) {
+            // Show overlay permission dialog if missing
+            if (overlayPermissionMissing) {
+                showingPermissionDialog = true
+                showOverlayPermissionDialog()
+            } else if (!startupStatus.permissionsOk) {
+                // Show standard permissions request if overlay permission is OK but others are missing
+                showingPermissionDialog = true
+                requestMissingPermissions()
+            } else if (!startupStatus.accessibilityEnabled) {
+                // Only show accessibility dialog if permissions are already OK
+                showingPermissionDialog = true
+                showAccessibilityDialog()
+            }
+        }
+    }
+
+    private fun hasOverlayPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            android.provider.Settings.canDrawOverlays(this)
+        } else {
+            ContextCompat.checkSelfPermission(this, "android.permission.SYSTEM_ALERT_WINDOW") == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun setupButtonListeners() {
+        val portEditText = findViewById<EditText>(R.id.port_input)
+        val startButton = findViewById<Button>(R.id.start_button)
+        val stopButton = findViewById<Button>(R.id.stop_button)
+        val statusText = findViewById<TextView>(R.id.status_text)
 
         startButton.setOnClickListener {
             val port = portEditText.text.toString().toIntOrNull() ?: WiFiMouseService.DEFAULT_PORT
@@ -132,11 +172,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestMissingPermissions() {
+        // Note: SYSTEM_ALERT_WINDOW cannot be requested via standard permission dialog
+        // It's a special permission handled separately in showOverlayPermissionDialog()
         val requiredPermissions = arrayOf(
             "android.permission.INTERNET",
             "android.permission.RECEIVE_BOOT_COMPLETED",
-            "android.permission.FOREGROUND_SERVICE",
-            "android.permission.SYSTEM_ALERT_WINDOW"
+            "android.permission.FOREGROUND_SERVICE"
         )
         val missingPermissions = requiredPermissions.filter { permission ->
             ContextCompat.checkSelfPermission(this, permission) != android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -145,7 +186,27 @@ class MainActivity : AppCompatActivity() {
         if (missingPermissions.isNotEmpty()) {
             LogManager.i("Requesting ${missingPermissions.size} missing permission(s)")
             ActivityCompat.requestPermissions(this, missingPermissions, PERMISSION_REQUEST_CODE)
+        } else {
+            LogManager.i("All standard permissions already granted")
         }
+    }
+
+    private fun showOverlayPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Enable Display Over Other Apps")
+            .setMessage("The app needs permission to display the cursor overlay across all apps.\n\nPlease go to Settings → Apps → Special app access → Display over other apps and enable this app.")
+            .setPositiveButton("Open Settings") { _, _ ->
+                LogManager.i("User requested to open overlay permission settings")
+                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                startActivity(intent)
+            }
+            .setNegativeButton("Skip") { _, _ ->
+                showingPermissionDialog = false
+            }
+            .setOnDismissListener {
+                showingPermissionDialog = false
+            }
+            .show()
     }
 
     private fun showAccessibilityDialog() {
@@ -157,12 +218,18 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                 startActivity(intent)
             }
-            .setNegativeButton("Skip", null)
+            .setNegativeButton("Skip") { _, _ ->
+                showingPermissionDialog = false
+            }
+            .setOnDismissListener {
+                showingPermissionDialog = false
+            }
             .show()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        showingPermissionDialog = false
         if (requestCode == PERMISSION_REQUEST_CODE) {
             val granted = grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }
             if (granted) {
@@ -171,6 +238,12 @@ class MainActivity : AppCompatActivity() {
                 val statusBadge = findViewById<View>(R.id.status_badge)
                 val startupStatus = PermissionChecker.runStartupCheck(this)
                 updateStatusBadge(statusBadge, startupStatus)
+
+                // Now show accessibility dialog if accessibility is not enabled
+                if (!startupStatus.accessibilityEnabled) {
+                    showingPermissionDialog = true
+                    showAccessibilityDialog()
+                }
             } else {
                 LogManager.w("Some permissions were denied")
             }

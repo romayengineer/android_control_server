@@ -4,7 +4,8 @@
       "PowerShell(choco *)",
       "PowerShell(java *)",
       "PowerShell(find *)",
-      "PowerShell(Test-Path *)"
+      "PowerShell(Test-Path *)",
+      "PowerShell(adb shell *)"
     ]
   }
 }
