@@ -39,9 +39,9 @@ The project consists of two main components:
 
 ### Build Environment
 - Android Studio or command line with Android SDK
-- Kotlin 1.5+
-- Gradle 7.0+
-- Java 11+
+- **Kotlin** 2.0.10+ (for compatibility with Android Gradle Plugin 8.5+)
+- **Gradle** 8.7+
+- **Java** 17+ (required by Android Gradle Plugin 8.5+)
 
 ## Installation
 
@@ -70,10 +70,16 @@ The project consists of two main components:
    ```
    Then reload: `source ~/.zshrc`
 
-4. **Verify setup**
+4. **Install Java 17+**
+   ```bash
+   brew install openjdk@17
+   export JAVA_HOME=/usr/local/opt/openjdk@17
+   ```
+
+5. **Verify setup**
    ```bash
    adb version
-   java -version  # Should be Java 11 or higher
+   java -version  # Should be Java 17 or higher
    ```
 
 #### Building the Server APK
@@ -170,25 +176,31 @@ See [SERVER_API.md](SERVER_API.md) for complete command reference and JSON messa
 
 ```
 android_control_server/
-├── src/main/
-│   ├── java/com/romayengineer/controlserver/
-│   │   ├── input/
-│   │   │   ├── InputController.kt          # Interface for input injection
-│   │   │   └── RootInputController.kt      # Root-based implementation
-│   │   ├── service/
-│   │   │   └── WiFiMouseService.kt         # Main service
-│   │   ├── network/
-│   │   │   └── ServerSocket.kt             # TCP server & command parser
-│   │   ├── receiver/
-│   │   │   └── BootReceiver.kt             # Auto-start on boot
-│   │   └── MainActivity.kt                 # UI for server control
-│   ├── res/
-│   │   ├── layout/activity_main.xml
-│   │   └── values/
-│   │       ├── colors.xml
-│   │       ├── strings.xml
-│   │       └── styles.xml
-│   └── AndroidManifest.xml
+├── app/
+│   ├── src/main/
+│   │   ├── java/com/romayengineer/controlserver/
+│   │   │   ├── input/
+│   │   │   │   ├── InputController.kt          # Interface for input injection
+│   │   │   │   └── RootInputController.kt      # Root-based implementation
+│   │   │   ├── service/
+│   │   │   │   └── WiFiMouseService.kt         # Main service
+│   │   │   ├── network/
+│   │   │   │   └── ServerSocket.kt             # TCP server & command parser
+│   │   │   ├── receiver/
+│   │   │   │   └── BootReceiver.kt             # Auto-start on boot
+│   │   │   └── MainActivity.kt                 # UI for server control
+│   │   ├── res/
+│   │   │   ├── drawable/                       # Launcher icon assets
+│   │   │   ├── layout/activity_main.xml
+│   │   │   ├── mipmap-*/                       # App icons for different densities
+│   │   │   └── values/
+│   │   │       ├── colors.xml
+│   │   │       ├── strings.xml
+│   │   │       └── styles.xml
+│   │   └── AndroidManifest.xml
+│   ├── build.gradle
+│   └── local.properties
+├── gradle.properties
 ├── build.gradle
 ├── settings.gradle
 └── README.md

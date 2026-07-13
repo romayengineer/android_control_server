@@ -15,6 +15,7 @@ class WiFiMouseService : Service() {
     companion object {
         private const val TAG = "WiFiMouseService"
         private const val NOTIFICATION_ID = 1
+        private const val CHANNEL_ID = "WiFiMouseChannel"
         const val DEFAULT_PORT = 3934
         const val KEY_PORT = "port"
     }
@@ -73,8 +74,4 @@ class WiFiMouseService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-
-    companion object {
-        private const val CHANNEL_ID = "WiFiMouseChannel"
-    }
 }
