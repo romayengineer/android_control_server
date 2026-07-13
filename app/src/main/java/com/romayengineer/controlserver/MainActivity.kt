@@ -44,8 +44,12 @@ class MainActivity : AppCompatActivity() {
         val stopButton = findViewById<Button>(R.id.stop_button)
         val statusText = findViewById<TextView>(R.id.status_text)
         val ipAddressText = findViewById<TextView>(R.id.ip_address_text)
+        val logText = findViewById<TextView>(R.id.log_text)
 
         cursorView = findViewById<CursorView>(R.id.cursor_view)
+
+        LogManager.setLogTextView(logText)
+        LogManager.i("App started")
 
         portEditText.setText(WiFiMouseService.DEFAULT_PORT.toString())
         displayLocalIpAddress(ipAddressText)

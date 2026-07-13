@@ -20,7 +20,8 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Live Cursor Tracking**: Cursor automatically moves to target position before executing clicks or scrolls (natural mouse behavior)
 - **Persistent Cursor**: Overlay service keeps cursor visible even when app is backgrounded or other apps are active
 - **Auto-restart on Crash**: Uses START_STICKY and KeepAliveJobService to automatically restart if killed
-- **Debug Logging**: Detailed logs for troubleshooting command execution
+- **Live Log Display**: Real-time logs displayed in the app UI with timestamps
+- **Comprehensive Logging**: Detailed logs for all events - service lifecycle, client connections, command execution, input controller selection, and errors
 
 ## Architecture
 
@@ -189,6 +190,25 @@ The app features a system-wide real-time cursor display:
 - **Persistent**: Remains visible even when the control app is backgrounded
 - **Non-intrusive**: Uses semi-transparent overlay that doesn't interfere with other apps
 
+### Live Log Display
+
+The app includes real-time logging directly in the UI for easy debugging and monitoring:
+- **Real-time Updates**: Logs appear instantly as events occur
+- **Timestamped**: Each log entry shows HH:mm:ss timestamp
+- **Auto-scrolling**: Automatically scrolls to show the latest logs
+- **Selectable Text**: Users can select and copy log messages
+- **Terminal Style**: Black background with green text for easy reading
+- **Monospace Font**: Technical logs displayed in fixed-width font
+
+**Logged Events Include:**
+- Service lifecycle (startup, shutdown, errors)
+- Client connections and disconnections
+- All commands received and executed (mousemove, click, scroll, keypress, text, etc.)
+- Command execution results (success/failure)
+- Input controller selection (AccessibilityService vs RootInputController)
+- Error messages with context
+- Warnings and debug information
+
 ### Finding Your Projector's IP
 
 ```bash
@@ -271,7 +291,8 @@ android_control_server/
 │   │   │   │   └── BootReceiver.kt                      # Auto-start on boot
 │   │   │   ├── ui/
 │   │   │   │   └── CursorView.kt                        # Custom cursor with crosshair design
-│   │   │   └── MainActivity.kt                          # UI for server control + cursor management
+│   │   │   ├── LogManager.kt                            # Central logging system with UI display
+│   │   │   └── MainActivity.kt                          # UI for server control + logs + cursor
 │   │   ├── res/
 │   │   │   ├── drawable/                       # Launcher icon assets
 │   │   │   ├── layout/activity_main.xml
@@ -368,6 +389,17 @@ Background job service for service health monitoring:
 - **Boot Persistence**: Automatically scheduled when device boots
 - **Reliable Recovery**: Ensures server continues running even after multiple crashes
 
+### LogManager
+Centralized logging system with real-time UI display:
+- **Singleton Pattern**: Single instance manages all app logs
+- **Timestamped Entries**: Each log shows HH:mm:ss timestamp
+- **Memory Efficient**: Keeps last 500 logs in memory with auto-cleanup
+- **Thread-safe**: Synchronizes access to log list
+- **UI Integration**: Automatically updates TextView on main thread
+- **Auto-scroll**: Scrolls to latest logs for visibility
+- **Multiple Levels**: Support for debug, info, warning, and error logs
+- **Android Logging**: Also logs to Android's standard logcat for debugging
+
 ## Permissions Required
 
 ```xml
@@ -440,11 +472,26 @@ Don't worry! The app includes automatic recovery:
 - KeepAliveJobService runs every 15 minutes to ensure services stay running
 - You can verify recovery by checking logcat for "Service started" messages
 
+### Debugging with In-App Logs
+
+The easiest way to debug is using the built-in log display:
+1. Open the WiFi Mouse Server app
+2. Look at the "Logs:" section at the bottom of the screen
+3. All events are logged in real-time with timestamps
+4. Logs include:
+   - Service startup/shutdown events
+   - Client connections and disconnections
+   - Command execution details
+   - Input controller selection (AccessibilityService vs Root)
+   - Any errors with context
+
+The logs display the last 500 events and automatically scroll to show the latest activity.
+
 ### Debugging with Logcat
 
-Enable detailed debugging by running:
+For more detailed system-level debugging, enable logcat:
 ```bash
-adb logcat -v threadtime | grep -E "ServerSocket|RootInputController|WiFiMouseService|AccessibilityInputController|LazyInputController"
+adb logcat -v threadtime | grep -E "ServerSocket|RootInputController|WiFiMouseService|AccessibilityInputController|LazyInputController|LogManager"
 ```
 
 This will show:
@@ -453,6 +500,7 @@ This will show:
 - Gesture dispatch results
 - Shell command output and errors
 - Connection lifecycle events
+- All log messages sent to the app's UI
 
 **AccessibilityService Specific:**
 ```bash

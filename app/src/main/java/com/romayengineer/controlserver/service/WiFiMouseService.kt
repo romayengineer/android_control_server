@@ -7,8 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.romayengineer.controlserver.LogManager
 import com.romayengineer.controlserver.R
 import com.romayengineer.controlserver.input.InputController
 import com.romayengineer.controlserver.input.RootInputController
@@ -30,7 +30,7 @@ class WiFiMouseService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "Service created")
+        LogManager.d("Service created")
         // Always create fallback controller
         fallbackController = RootInputController()
         startForegroundService()
@@ -43,14 +43,14 @@ class WiFiMouseService : Service() {
         try {
             val overlayIntent = Intent(this, OverlayService::class.java)
             startService(overlayIntent)
-            Log.d(TAG, "Overlay service started")
+            LogManager.d("Overlay service started")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start overlay service", e)
+            LogManager.e("Failed to start overlay service: ${e.message}", e)
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Service started")
+        LogManager.d("Service started")
         val port = intent?.getIntExtra(KEY_PORT, DEFAULT_PORT) ?: DEFAULT_PORT
         startServer(port)
         return START_STICKY
@@ -81,13 +81,13 @@ class WiFiMouseService : Service() {
     private fun startServer(port: Int) {
         // Stop existing server if running
         if (serverThread?.isAlive == true) {
-            Log.d(TAG, "Stopping existing server")
+            LogManager.d("Stopping existing server")
             serverSocket?.stop()
             serverThread?.interrupt()
             try {
                 serverThread?.join(1000)
             } catch (e: InterruptedException) {
-                Log.e(TAG, "Interrupted while waiting for server thread", e)
+                LogManager.e("Interrupted while waiting for server thread: ${e.message}", e)
             }
         }
 
@@ -97,15 +97,15 @@ class WiFiMouseService : Service() {
                 val controller = LazyInputController(fallbackController!!)
                 serverSocket = ServerSocket(port, controller)
                 serverSocket?.start()
-                Log.d(TAG, "Server started on port $port")
+                LogManager.d("Server started on port $port")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to start server", e)
+                LogManager.e("Failed to start server: ${e.message}", e)
             }
         }
     }
 
     override fun onDestroy() {
-        Log.d(TAG, "Service destroyed")
+        LogManager.d("Service destroyed")
         serverSocket?.stop()
         fallbackController?.shutdown()
         super.onDestroy()
@@ -119,28 +119,28 @@ private class LazyInputController(private val fallback: InputController) : Input
 
     private fun getController(): InputController {
         val a11yController = ControlServerAccessibilityService.getInputController()
-        Log.d(tag, "getController: a11yController=$a11yController")
+        LogManager.d("getController: a11yController=$a11yController")
         return if (a11yController != null) {
-            Log.d(tag, "Using AccessibilityService for input")
+            LogManager.d("Using AccessibilityService for input")
             a11yController
         } else {
-            Log.d(tag, "Using fallback RootInputController")
+            LogManager.d("Using fallback RootInputController")
             fallback
         }
     }
 
     override fun moveMouse(x: Int, y: Int): Boolean {
-        Log.d(tag, "moveMouse($x, $y)")
+        LogManager.d("moveMouse($x, $y)")
         return getController().moveMouse(x, y)
     }
 
     override fun clickMouse(button: com.romayengineer.controlserver.input.MouseButton): Boolean {
-        Log.d(tag, "clickMouse($button)")
+        LogManager.d("clickMouse($button)")
         return getController().clickMouse(button)
     }
 
     override fun clickMouse(x: Int, y: Int, button: com.romayengineer.controlserver.input.MouseButton): Boolean {
-        Log.d(tag, "clickMouse($x, $y, $button)")
+        LogManager.d("clickMouse($x, $y, $button)")
         return getController().clickMouse(x, y, button)
     }
     override fun pressMouse(button: com.romayengineer.controlserver.input.MouseButton): Boolean = getController().pressMouse(button)
