@@ -32,6 +32,8 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Smart Device Detection**: Handles device names with spaces and multiple connected devices
 - **WebSocket Server**: Browser-based control via WebSocket protocol on port 3935 (TCP 3934 + WebSocket 3935 run simultaneously)
 - **Dual Protocol Support**: Same JSON command format works over both TCP and WebSocket connections
+- **Auto-Reconnect**: Web frontend automatically attempts to reconnect every 3 seconds if connection is lost after initial connection
+- **Connection Resilience**: Smart reconnection only activates after successful initial connection, not on failed first attempts
 
 ## Architecture
 
@@ -387,6 +389,10 @@ ifconfig wlan0
 - **JavaScript Example**: `new WebSocket('ws://192.168.1.100:3935')`
 - Perfect for Svelte, React, or vanilla HTML/JavaScript web clients
 - Supports multiple concurrent connections
+- **Auto-Reconnect**: Web frontend automatically reconnects every 3 seconds if connection drops
+  - Only activates after a successful initial connection
+  - Does not attempt reconnection if initial connection fails (user can change IP/port and try again)
+  - User can stop reconnection attempts at any time by clicking the Disconnect button
 
 ### Client Scripts
 
@@ -451,6 +457,24 @@ Using shell script to send raw JSON over TCP:
 ./scripts/mouse_event.sh move 500 300
 ./scripts/mouse_event.sh click 500 300 LEFT
 ```
+
+### Web Frontend Client
+
+The included web-based frontend (built with Svelte) provides an intuitive touch-friendly interface with intelligent connection management:
+
+**Features:**
+- Visual circular control pad for mouse movement with drag gestures
+- Left click and right click support
+- Real-time connection status indicator (green when connected, red when disconnected)
+- Smart auto-reconnect that maintains connection stability
+- Dark theme UI optimized for comfortable use in various lighting conditions
+- Responsive design works on desktop browsers and tablets
+
+**Auto-Reconnect Behavior:**
+- Once connected to a server, if the connection drops, the frontend automatically attempts to reconnect every 3 seconds
+- Status displays "Reconnecting..." while attempting to restore the connection
+- No need to manually reconnect or reload the page
+- User can click Disconnect to stop reconnection attempts and change server IP/port
 
 ### WebSocket Connection Example
 

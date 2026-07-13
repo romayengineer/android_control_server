@@ -14,11 +14,15 @@
 	let ws: WebSocket | null = null;
 	let isConnected: boolean = false;
 	let isDragging: boolean = false;
+	let hasConnectedBefore: boolean = false;
+	let userInitiatedDisconnect: boolean = false;
+	let reconnectTimer: ReturnType<typeof setInterval> | null = null;
 
 	const CIRCLE_RADIUS = 80;
 	const CONTAINER_SIZE = 300;
 	const THROTTLE_DELAY = 50; // Send movement updates every 50ms while dragging
 	const SENSITIVITY_FACTOR = 0.05; // Range: 0.1 (slow) to 1.0 (fast), 0.4 = 40% of max speed
+	const RECONNECT_INTERVAL = 3000; // Reconnect every 3 seconds
 
 	let centerX: number = CONTAINER_SIZE / 2;
 	let centerY: number = CONTAINER_SIZE / 2;
@@ -30,6 +34,24 @@
 	let sendTimer: ReturnType<typeof setTimeout> | null = null;
 	let isWaitingForResponse: boolean = false;
 
+	function startReconnectTimer(): void {
+		if (reconnectTimer) return;
+
+		reconnectTimer = setInterval(() => {
+			if (!isConnected && hasConnectedBefore && !userInitiatedDisconnect) {
+				console.log('🔄 Attempting to reconnect...');
+				connectWebSocket();
+			}
+		}, RECONNECT_INTERVAL);
+	}
+
+	function stopReconnectTimer(): void {
+		if (reconnectTimer) {
+			clearInterval(reconnectTimer);
+			reconnectTimer = null;
+		}
+	}
+
 	function connectWebSocket(): void {
 		const url = `ws://${config.serverIp}:${config.serverPort}`;
 
@@ -38,9 +60,12 @@
 
 			ws.onopen = () => {
 				isConnected = true;
+				hasConnectedBefore = true;
+				userInitiatedDisconnect = false;
 				statusMessage = `Connected to ${config.serverIp}:${config.serverPort}`;
 				localStorage.setItem('serverIp', config.serverIp);
 				localStorage.setItem('serverPort', config.serverPort.toString());
+				stopReconnectTimer();
 				console.log('✅ WebSocket connected to', url);
 			};
 
@@ -62,20 +87,36 @@
 				isConnected = false;
 				statusMessage = `Connection error`;
 				console.error('❌ WebSocket error:', error);
+				if (hasConnectedBefore && !userInitiatedDisconnect) {
+					startReconnectTimer();
+				}
 			};
 
 			ws.onclose = () => {
 				isConnected = false;
-				statusMessage = 'Disconnected';
-				console.log('🔌 WebSocket disconnected');
+				if (!userInitiatedDisconnect) {
+					statusMessage = 'Reconnecting...';
+					console.log('🔌 WebSocket disconnected, attempting to reconnect');
+					if (hasConnectedBefore) {
+						startReconnectTimer();
+					}
+				} else {
+					statusMessage = 'Disconnected';
+					console.log('🔌 WebSocket disconnected');
+				}
 			};
 		} catch (error) {
 			isConnected = false;
 			statusMessage = `Failed to connect: ${error}`;
+			if (hasConnectedBefore && !userInitiatedDisconnect) {
+				startReconnectTimer();
+			}
 		}
 	}
 
 	function disconnectWebSocket(): void {
+		userInitiatedDisconnect = true;
+		stopReconnectTimer();
 		if (ws) {
 			ws.close();
 			ws = null;
@@ -211,6 +252,7 @@
 		if (sendTimer) {
 			clearTimeout(sendTimer);
 		}
+		stopReconnectTimer();
 		disconnectWebSocket();
 	});
 </script>
