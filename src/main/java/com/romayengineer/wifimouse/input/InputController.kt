@@ -1,4 +1,4 @@
-package com.romayengineer.wifimouse.input
+package com.romayengineer.controlserver.input
 
 interface InputController {
     fun moveMouse(x: Int, y: Int): Boolean

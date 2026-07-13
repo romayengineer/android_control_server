@@ -1,14 +1,14 @@
-package com.romayengineer.wifimouse.service
+package com.romayengineer.controlserver.service
 
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.romayengineer.wifimouse.R
-import com.romayengineer.wifimouse.input.InputController
-import com.romayengineer.wifimouse.input.RootInputController
-import com.romayengineer.wifimouse.network.ServerSocket
+import com.romayengineer.controlserver.R
+import com.romayengineer.controlserver.input.InputController
+import com.romayengineer.controlserver.input.RootInputController
+import com.romayengineer.controlserver.network.ServerSocket
 import kotlin.concurrent.thread
 
 class WiFiMouseService : Service() {

@@ -1,11 +1,11 @@
-package com.romayengineer.wifimouse.receiver
+package com.romayengineer.controlserver.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.romayengineer.wifimouse.service.WiFiMouseService
+import com.romayengineer.controlserver.service.WiFiMouseService
 
 class BootReceiver : BroadcastReceiver() {
     companion object {

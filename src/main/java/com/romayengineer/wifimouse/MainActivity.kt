@@ -1,4 +1,4 @@
-package com.romayengineer.wifimouse
+package com.romayengineer.controlserver
 
 import android.content.Intent
 import android.os.Build
@@ -8,7 +8,7 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.romayengineer.wifimouse.service.WiFiMouseService
+import com.romayengineer.controlserver.service.WiFiMouseService
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

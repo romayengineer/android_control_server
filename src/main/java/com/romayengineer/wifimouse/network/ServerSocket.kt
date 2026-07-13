@@ -1,11 +1,11 @@
-package com.romayengineer.wifimouse.network
+package com.romayengineer.controlserver.network
 
 import android.util.Log
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import com.romayengineer.wifimouse.input.InputController
-import com.romayengineer.wifimouse.input.MouseButton
-import com.romayengineer.wifimouse.input.ScrollDirection
+import com.romayengineer.controlserver.input.InputController
+import com.romayengineer.controlserver.input.MouseButton
+import com.romayengineer.controlserver.input.ScrollDirection
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter

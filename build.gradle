@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace "com.romayengineer.wifimouse"
+    namespace "com.romayengineer.controlserver"
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.romayengineer.wifimouse"
+        applicationId "com.romayengineer.controlserver"
         minSdk 24
         targetSdk 34
         versionCode 1

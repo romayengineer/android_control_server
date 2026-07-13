@@ -1,6 +1,6 @@
-# WiFi Mouse - Remote Pointer Control for Android
+# Android WiFi Control Server
 
-Control your Android projector's mouse pointer from another Android device over WiFi. Perfect for presentations, media playback, and interactive applications.
+Control your Android projector's mouse pointer, keyboard, and other input from another Android device over WiFi. Perfect for presentations, media playback, and interactive applications.
 
 ## Features
 
