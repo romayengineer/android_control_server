@@ -10,9 +10,10 @@ A modern, TypeScript-based Svelte web application for controlling the WiFi Mouse
 - **Live Connection Status**: Visual indicator showing server connection state
 - **Configuration**: Set custom server IP and port
 - **Persistent Settings**: Remember server configuration between sessions
+- **Sensitivity Control**: Built-in 0.4x sensitivity factor (configurable) for smooth, controlled movement
 - **TypeScript**: Fully typed for type safety and better developer experience
 - **Tailwind CSS**: Modern utility-first CSS framework for rapid UI development
-- **Debounced Events**: Mousemove events debounced at 200ms to reduce network traffic
+- **Throttled Events**: Mousemove events throttled at 50ms for smooth continuous movement while preventing network flooding
 - **Console Logging**: Detailed event logging with emoji icons for easy debugging
 - **Modern UI**: Clean, gradient-based dark theme with responsive design
 
@@ -84,13 +85,33 @@ The app works on:
 - Tablets
 - Large phones (landscape orientation recommended)
 
-### Event Debouncing
+### Sensitivity Control
 
-Mouse movement events are debounced with a 200ms delay to optimize network usage:
-- **Mousemove events**: Debounced - only sent after 200ms of inactivity
-- **Click events**: Sent immediately without debouncing
-- **Benefits**: Reduces network traffic, improves performance on slow connections
-- **Console log**: Shows as `📤 Event sent (debounced):` in browser console
+Mouse movement uses a configurable sensitivity factor for precise control:
+- **Default Sensitivity**: 0.4x (40% of maximum speed)
+- **How it works**: Relative movements are scaled by the sensitivity factor before sending
+  - Full circle drag with 0.4x sensitivity: 40 pixels movement (instead of 100)
+  - Backend multiplies by 10: becomes 400 pixel movement (not 1000)
+- **Adjustment**: Edit `SENSITIVITY_FACTOR` in `src/lib/MouseControl.svelte`
+  - `0.1` = 10% (very slow, precise control)
+  - `0.4` = 40% (default, balanced)
+  - `1.0` = 100% (maximum speed)
+- **Benefits**: Smooth, controlled pointer movement without overshooting
+
+### Event Throttling
+
+Mouse movement events are throttled to balance smooth control with network efficiency:
+- **Mousemove events**: Throttled - sent at most every 50ms while dragging
+- **Continuous movement**: Position updates sent continuously while holding drag
+- **Click events**: Sent immediately without throttling
+- **Benefits**: Smooth continuous movement without flooding the server with events
+- **Network efficiency**: Max ~20 events per second (1000ms ÷ 50ms) vs unlimited
+- **Behavior**: Drag and hold the circle - cursor follows smoothly as you drag
+
+**How throttling works:**
+1. First mouse move event: sends immediately
+2. Subsequent events within 50ms: queued and sent at the next 50ms window
+3. This ensures 50ms resolution updates while dragging continuously
 
 ### Console Logging
 
@@ -102,10 +123,10 @@ Comprehensive logging for debugging (press F12 to open Developer Tools):
 - ❌ `❌ WebSocket error: ...` - Connection failed
 
 **Command Events:**
-- 📤 `📤 Event sent: {command: "mousemove", ...}` - Immediate events
-- 📤 `📤 Event sent (debounced): {...}` - Debounced mousemove
-- 🖱️ `🖱️ Left click` - Left-click action
-- 🖱️ `🖱️ Right click` - Right-click action
+- 📤 `📤 Event sent: {command: "mousemove", dx: 40, dy: 30}` - Throttled mousemove (every 50ms)
+- 📤 `📤 Event sent: {command: "mousemove", dx: 35, dy: 25}` - Next update in window
+- 🖱️ `🖱️ Left click` - Left-click action (immediate, no throttling)
+- 🖱️ `🖱️ Right click` - Right-click action (immediate, no throttling)
 
 **Server Responses:**
 - 📥 `📥 Server response: {success: true, ...}` - Server acknowledgment
@@ -193,14 +214,19 @@ The project is fully typed with:
 **Example console output when dragging:**
 ```
 ✅ WebSocket connected to ws://192.168.1.100:3935
-📤 Event sent (debounced): {command: "mousemove", dx: 75, dy: 50}
-📤 Event sent (debounced): {command: "mousemove", dx: 100, dy: 0}
+📤 Event sent: {command: "mousemove", dx: 40, dy: 30}
+📤 Event sent: {command: "mousemove", dx: 40, dy: 25}
+📤 Event sent: {command: "mousemove", dx: 35, dy: 20}
 🖱️ Left click
 📤 Event sent: {command: "click", button: "LEFT"}
 📥 Server response: {success: true, command: "click"}
 ```
 
-Notice the `dx` and `dy` values are relative deltas, not absolute positions. This allows unbounded mouse control regardless of the target device's screen resolution.
+**Key observations:**
+- Multiple mousemove events sent while holding drag (every ~50ms)
+- `dx` and `dy` values are relative deltas, allowing unbounded control
+- Click events appear separately with immediate response
+- Server sends back success confirmation for each command
 
 ## Development Notes
 
@@ -223,12 +249,23 @@ Notice the `dx` and `dy` values are relative deltas, not absolute positions. Thi
 - **Custom Colors**: Extended color palette with `status-green` and `status-red`
 - **Production**: CSS automatically purged and minified in build output
 
-### Event Debouncing Implementation
-- **Function**: `sendCommandDebounced()` handles debounced mousemove events
-- **Timer Management**: `debounceTimer` tracks active debounce timers
-- **Last Command**: `lastCommand` stores the most recent command while debouncing
-- **Cleanup**: Properly clears timers on component unmount
-- **Delay**: Configurable via `DEBOUNCE_DELAY` constant (200ms)
+### Event Throttling Implementation
+- **Function**: `sendCommandThrottled()` handles throttled mousemove events
+- **Timer Management**: `sendTimer` tracks pending sends in current throttle window
+- **Pending Command**: `pendingCommand` stores the latest command while waiting
+- **Last Send Time**: `lastSendTime` tracks when the last event was sent
+- **Delay**: Configurable via `THROTTLE_DELAY` constant (50ms for smooth movement)
+- **Cleanup**: Properly clears timers on component unmount and mouse up
+- **Behavior**: Sends immediately if throttle window elapsed, queues otherwise
+
+### Sensitivity Control Implementation
+- **Constant**: `SENSITIVITY_FACTOR` (default: 0.4)
+- **Formula**: `finalX = baseX * SENSITIVITY_FACTOR`
+- **Calculation**: Applied AFTER angle/magnitude calculation
+- **Range**: 0.1 (slow) to 1.0 (fast)
+- **Backend scaling**: Android backend multiplies by 10, so:
+  - 0.4x sensitivity: max 40 pixels/unit × 10 = 400 pixels per full drag
+  - 1.0x sensitivity: max 100 pixels/unit × 10 = 1000 pixels per full drag
 
 ## Future Enhancements
 

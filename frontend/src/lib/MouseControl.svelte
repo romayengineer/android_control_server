@@ -17,15 +17,17 @@
 
 	const CIRCLE_RADIUS = 80;
 	const CONTAINER_SIZE = 300;
-	const DEBOUNCE_DELAY = 200;
+	const THROTTLE_DELAY = 50; // Send movement updates every 50ms while dragging
+	const SENSITIVITY_FACTOR = 0.05; // Range: 0.1 (slow) to 1.0 (fast), 0.4 = 40% of max speed
 
 	let centerX: number = CONTAINER_SIZE / 2;
 	let centerY: number = CONTAINER_SIZE / 2;
 	let cursorX: number = 0;
 	let cursorY: number = 0;
 	let statusMessage: string = 'Disconnected';
-	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-	let lastCommand: Record<string, unknown> | null = null;
+	let lastSendTime: number = 0;
+	let pendingCommand: Record<string, unknown> | null = null;
+	let sendTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function connectWebSocket(): void {
 		const url = `ws://${config.serverIp}:${config.serverPort}`;
@@ -79,21 +81,34 @@
 		}
 	}
 
-	function sendCommandDebounced(command: Record<string, unknown>): void {
-		lastCommand = command;
+	function sendCommandThrottled(command: Record<string, unknown>): void {
+		pendingCommand = command;
+		const now = Date.now();
+		const timeSinceLastSend = now - lastSendTime;
 
-		if (debounceTimer) {
-			clearTimeout(debounceTimer);
-		}
+		// If enough time has passed, send immediately
+		if (timeSinceLastSend >= THROTTLE_DELAY) {
+			sendCommand(command);
+			lastSendTime = now;
+			pendingCommand = null;
 
-		debounceTimer = setTimeout(() => {
-			if (lastCommand && ws && isConnected && ws.readyState === WebSocket.OPEN) {
-				const jsonCommand = JSON.stringify(lastCommand);
-				console.log('📤 Event sent (debounced):', lastCommand);
-				ws.send(jsonCommand);
+			// Clear any pending timer
+			if (sendTimer) {
+				clearTimeout(sendTimer);
+				sendTimer = null;
 			}
-			debounceTimer = null;
-		}, DEBOUNCE_DELAY);
+		} else {
+			// Schedule a send for the next throttle window
+			if (!sendTimer) {
+				sendTimer = setTimeout(() => {
+					if (pendingCommand && ws && isConnected && ws.readyState === WebSocket.OPEN) {
+						sendCommand(pendingCommand);
+						lastSendTime = Date.now();
+					}
+					sendTimer = null;
+				}, THROTTLE_DELAY - timeSinceLastSend);
+			}
+		}
 	}
 
 	function onMouseDown(event: MouseEvent): void {
@@ -127,11 +142,13 @@
 			const angle = Math.atan2(dy, dx);
 			const magnitude = Math.min(distance / CIRCLE_RADIUS, 1);
 
-			// Calculate relative movement based on direction and magnitude
-			const relativeX = Math.round(Math.cos(angle) * magnitude * 100);
-			const relativeY = Math.round(Math.sin(angle) * magnitude * 100);
+			// Calculate relative movement based on direction and magnitude with sensitivity
+			const baseX = Math.cos(angle) * magnitude * 100;
+			const baseY = Math.sin(angle) * magnitude * 100;
+			const relativeX = Math.round(baseX * SENSITIVITY_FACTOR);
+			const relativeY = Math.round(baseY * SENSITIVITY_FACTOR);
 
-			sendCommandDebounced({
+			sendCommandThrottled({
 				command: 'mousemove',
 				dx: relativeX,
 				dy: relativeY
@@ -167,8 +184,8 @@
 	});
 
 	onDestroy(() => {
-		if (debounceTimer) {
-			clearTimeout(debounceTimer);
+		if (sendTimer) {
+			clearTimeout(sendTimer);
 		}
 		disconnectWebSocket();
 	});
