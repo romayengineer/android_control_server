@@ -1,12 +1,16 @@
 package com.romayengineer.controlserver.ui
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.LinearInterpolator
 import kotlin.math.min
 
 class CursorView @JvmOverloads constructor(
@@ -18,6 +22,8 @@ class CursorView @JvmOverloads constructor(
     private var cursorX = 0f
     private var cursorY = 0f
     private var showCursor = true
+    private var animator: ValueAnimator? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val paint = Paint().apply {
         color = Color.RED
@@ -33,9 +39,26 @@ class CursorView @JvmOverloads constructor(
     }
 
     fun updateCursorPosition(x: Int, y: Int) {
-        cursorX = x.toFloat()
-        cursorY = y.toFloat()
-        postInvalidate()
+        mainHandler.post {
+            val targetX = x.toFloat()
+            val targetY = y.toFloat()
+            val startX = cursorX
+            val startY = cursorY
+
+            animator?.cancel()
+
+            animator = ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 150
+                interpolator = LinearInterpolator()
+                addUpdateListener { animation ->
+                    val progress = animation.animatedValue as Float
+                    cursorX = startX + (targetX - startX) * progress
+                    cursorY = startY + (targetY - startY) * progress
+                    postInvalidate()
+                }
+                start()
+            }
+        }
     }
 
     fun setCursorVisible(visible: Boolean) {

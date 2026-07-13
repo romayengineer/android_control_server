@@ -37,6 +37,7 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Smart Click Positioning**: Click commands without coordinates execute at current cursor position instead of resetting to origin
 - **Unified Command Processing**: Centralized CommandProcessor eliminates code duplication between TCP and WebSocket servers
 - **Time-based Movement Scaling**: Mouse movements are scaled by time intervals, smoothing acceleration based on command frequency for natural motion
+- **Smooth Cursor Animation**: Cursor smoothly transitions from point A to point B with 150ms linear interpolation for natural, fluid motion
 
 ## Architecture
 
@@ -673,10 +674,11 @@ Modern WebSocket implementation for browser-based clients:
 ### CursorView
 Custom Android View for visual cursor display:
 - **Design**: Red circular crosshair with semi-transparent fill
+- **Smooth Animation**: 150ms linear interpolation between cursor positions for fluid transitions
 - **Real-time Updates**: Cursor position updates on every mouse move command
 - **Thread-safe**: Updates posted to main thread via Handler
 - **Layout Integration**: Overlay view on top of control UI without interference
-- **No Performance Impact**: Lightweight drawing using Canvas API
+- **No Performance Impact**: Lightweight drawing using Canvas API with optimized animation timing
 
 ### OverlayService
 System-wide cursor overlay service:
