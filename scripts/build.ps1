@@ -11,7 +11,8 @@ Write-Host "Configuring environment..." -ForegroundColor Yellow
 
 $JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot"
 $ANDROID_SDK_ROOT = "$env:USERPROFILE\AppData\Local\Android\Sdk"
-$PROJECT_DIR = Split-Path -Parent $PSCommandPath
+# Script is in scripts/ folder, so go up one level to project root
+$PROJECT_DIR = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 
 # Validate Java installation
 if (!(Test-Path "$JAVA_HOME\bin\java.exe")) {

@@ -106,10 +106,10 @@ The project consists of two main components:
 
 ```powershell
 # Build debug APK
-.\build.ps1
+.\scripts\build.ps1
 
 # Build release APK
-.\build.ps1 -BuildType release
+.\scripts\build.ps1 -BuildType release
 ```
 
 The build script automatically:
@@ -149,10 +149,10 @@ The easiest way - builds, installs, and launches in one command:
 
 ```powershell
 # Build and install to connected device
-.\install.ps1
+.\scripts\install.ps1
 
 # With release build
-.\install.ps1 -BuildType release
+.\scripts\install.ps1 -BuildType release
 ```
 
 The install script automatically:
@@ -178,29 +178,42 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n "com.romayengineer.controlserver/.MainActivity"
 ```
 
+### Scripts Organization
+
+All build, installation, and control scripts are organized in the `scripts/` folder for cleaner project structure:
+
+**PowerShell Scripts (Windows):**
+- `scripts/build.ps1` - Build the APK
+- `scripts/install.ps1` - Build, install, and launch to device
+
+**Shell Scripts (macOS/Linux):**
+- `scripts/mouse_event.sh` - Send mouse commands to server
+- `scripts/debug_click.sh` - Test click events
+- `scripts/run_and_tail.sh` - Run and monitor logs
+
 ### Build and Install Scripts
 
-Windows users have convenient PowerShell scripts for building and installation:
+Windows users have convenient PowerShell scripts for building and installation in the `scripts/` folder:
 
-**build.ps1** - Standalone build script
+**scripts/build.ps1** - Standalone build script
 ```powershell
 # Build debug APK
-.\build.ps1
+.\scripts\build.ps1
 
 # Build release APK
-.\build.ps1 -BuildType release
+.\scripts\build.ps1 -BuildType release
 
 # Clean and rebuild
-.\build.ps1 -Clean
+.\scripts\build.ps1 -Clean
 ```
 
-**install.ps1** - Complete build and install workflow
+**scripts/install.ps1** - Complete build and install workflow
 ```powershell
 # One-command setup: Build → Connect → Install → Launch
-.\install.ps1
+.\scripts\install.ps1
 
 # With release build
-.\install.ps1 -BuildType release
+.\scripts\install.ps1 -BuildType release
 ```
 
 Features:
@@ -336,12 +349,12 @@ The client connects to the server via:
 
 ### Client Scripts
 
-A collection of shell scripts are provided to control the server from macOS/Linux:
+A collection of shell scripts are provided in the `scripts/` folder to control the server from macOS/Linux:
 
-#### mouse_event.sh - Unified Mouse Event Control
+#### scripts/mouse_event.sh - Unified Mouse Event Control
 
 ```bash
-./mouse_event.sh <event_type> <x> <y> [button]
+./scripts/mouse_event.sh <event_type> <x> <y> [button]
 ```
 
 **Event Types:**
@@ -352,16 +365,16 @@ A collection of shell scripts are provided to control the server from macOS/Linu
 
 ```bash
 # Move mouse to position
-./mouse_event.sh move 500 300
+./scripts/mouse_event.sh move 500 300
 
 # Left click (default)
-./mouse_event.sh click 500 300
+./scripts/mouse_event.sh click 500 300
 
 # Right click
-./mouse_event.sh click 500 300 RIGHT
+./scripts/mouse_event.sh click 500 300 RIGHT
 
 # Middle click
-./mouse_event.sh click 500 300 MIDDLE
+./scripts/mouse_event.sh click 500 300 MIDDLE
 ```
 
 ## API Documentation
@@ -420,11 +433,12 @@ android_control_server/
 ├── gradle.properties
 ├── build.gradle
 ├── settings.gradle
-├── build.ps1                          # PowerShell build script for Windows
-├── install.ps1                        # PowerShell build + install + launch script
-├── mouse_event.sh                     # Shell script for sending mouse commands
-├── debug_click.sh                     # Shell script for debug click testing
-├── run_and_tail.sh                    # Shell script for running and monitoring logs
+├── scripts/
+│   ├── build.ps1                      # PowerShell build script for Windows
+│   ├── install.ps1                    # PowerShell build + install + launch script
+│   ├── mouse_event.sh                 # Shell script for sending mouse commands
+│   ├── debug_click.sh                 # Shell script for debug click testing
+│   └── run_and_tail.sh                # Shell script for running and monitoring logs
 └── README.md
 ```
 

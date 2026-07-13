@@ -6,7 +6,8 @@ param(
 # Setup environment variables
 $JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot"
 $ANDROID_SDK_ROOT = "$env:USERPROFILE\AppData\Local\Android\Sdk"
-$PROJECT_DIR = Split-Path -Parent $PSCommandPath
+# Script is in scripts/ folder, so go up one level to project root
+$PROJECT_DIR = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 
 # Set environment variables for this session
 $env:JAVA_HOME = $JAVA_HOME
@@ -19,7 +20,7 @@ Write-Host ""
 
 # Step 1: Build the project
 Write-Host "Step 1: Building project..." -ForegroundColor Yellow
-& "$PROJECT_DIR\build.ps1" -BuildType $BuildType
+& "$PROJECT_DIR\scripts\build.ps1" -BuildType $BuildType
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
@@ -185,11 +186,11 @@ if ($LASTEXITCODE -eq 0) {
         Write-Host "1. Check your device screen - the app should be open"
         Write-Host "2. Note the IP address displayed in the app"
         Write-Host "3. Enable AccessibilityService in Settings → Accessibility (optional but recommended)"
-        Write-Host "4. Connect from your PC with: ./mouse_event.sh <ip> <event_type> <x> <y> [button]"
+        Write-Host "4. Connect from your PC with: ./scripts/mouse_event.sh <ip> <event_type> <x> <y> [button]"
         Write-Host ""
         Write-Host "Example:" -ForegroundColor Gray
-        Write-Host "  ./mouse_event.sh 192.168.1.100 move 500 300" -ForegroundColor Gray
-        Write-Host "  ./mouse_event.sh 192.168.1.100 click 500 300 LEFT" -ForegroundColor Gray
+        Write-Host "  ./scripts/mouse_event.sh 192.168.1.100 move 500 300" -ForegroundColor Gray
+        Write-Host "  ./scripts/mouse_event.sh 192.168.1.100 click 500 300 LEFT" -ForegroundColor Gray
     } else {
         Write-Host ""
         Write-Host "WARNING: Installation successful but could not launch app" -ForegroundColor Yellow
