@@ -50,7 +50,7 @@ The project consists of two main components:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd wifi_mouse
+cd android_control_server
 
 # Build the APK
 ./gradlew assembleDebug
@@ -77,7 +77,7 @@ After installation, grant the required permissions:
 # If device has root access
 adb shell
 su
-pm grant com.romayengineer.wifimouse android.permission.INTERNET
+pm grant com.romayengineer.controlserver android.permission.INTERNET
 ```
 
 ## Usage
@@ -125,9 +125,9 @@ See [SERVER_API.md](SERVER_API.md) for complete command reference and JSON messa
 ## Project Structure
 
 ```
-wifi_mouse/
+android_control_server/
 ├── src/main/
-│   ├── java/com/romayengineer/wifimouse/
+│   ├── java/com/romayengineer/controlserver/
 │   │   ├── input/
 │   │   │   ├── InputController.kt          # Interface for input injection
 │   │   │   └── RootInputController.kt      # Root-based implementation
