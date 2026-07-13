@@ -48,8 +48,9 @@ class RootInputController : InputController {
     }
 
     override fun clickMouse(x: Int, y: Int, button: MouseButton): Boolean {
-        val command = "input tap $x $y"
-        Log.d(TAG, "clickMouse($x, $y, $button)")
+        // Use swipe from the same point to itself to simulate a tap
+        val command = "input swipe $x $y $x $y 100"
+        Log.d(TAG, "clickMouse($x, $y, $button) - using swipe")
         return executeCommand(command)
     }
 

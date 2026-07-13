@@ -14,6 +14,8 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Persistent Service**: Uses foreground service with automatic restart on crash
 - **Concurrent Clients**: Multiple client connections supported simultaneously
 - **Extensible Architecture**: Interface-based design allows multiple input injection backends
+- **AccessibilityService Support**: Non-root click and scroll via Android AccessibilityService API
+- **Dual Input Methods**: AccessibilityService (preferred) with RootInputController fallback
 - **Debug Logging**: Detailed logs for troubleshooting command execution
 
 ## Architecture
@@ -35,9 +37,9 @@ The project consists of two main components:
 
 ### Server
 - **Android Device**: Android 7.0+ (API 24+)
-- **Root Access or Developer Mode**: Required for root input injection
-  - Option 1: Device with root/SuperUser access
-  - Option 2: Future Accessibility Service implementation for non-root operation
+- **Input Method** (one of):
+  - **AccessibilityService** (Recommended): Enable in device Accessibility settings - non-root, works for click and scroll
+  - **Root Access**: Device with SuperUser access - allows full input injection
 - **Network**: WiFi connectivity with server and client on same network
 
 ### Build Environment
@@ -133,6 +135,23 @@ su
 pm grant com.romayengineer.controlserver android.permission.INTERNET
 ```
 
+### Enabling AccessibilityService (Non-Root Option)
+
+For non-root click and scroll support, enable the AccessibilityService:
+
+**Via ADB:**
+```bash
+adb shell settings put secure enabled_accessibility_services com.romayengineer.controlserver/.service.ControlServerAccessibilityService
+```
+
+**Or Manually on Device:**
+1. Open Settings
+2. Navigate to Accessibility (or Accessibility Settings)
+3. Find "ControlServer" or "Android WiFi Control Server"
+4. Enable the service
+
+Once enabled, the app will automatically use AccessibilityService for click and scroll commands. No restart needed.
+
 ## Usage
 
 ### Starting the Server
@@ -216,15 +235,19 @@ android_control_server/
 │   ├── src/main/
 │   │   ├── java/com/romayengineer/controlserver/
 │   │   │   ├── input/
-│   │   │   │   ├── InputController.kt          # Interface for input injection
-│   │   │   │   └── RootInputController.kt      # Root-based implementation
+│   │   │   │   ├── InputController.kt                    # Interface for input injection
+│   │   │   │   ├── RootInputController.kt               # Root-based implementation
+│   │   │   │   ├── AccessibilityInputController.kt      # AccessibilityService-based implementation
+│   │   │   │   ├── MouseButton.kt                       # Enum for mouse buttons
+│   │   │   │   └── ScrollDirection.kt                   # Enum for scroll directions
 │   │   │   ├── service/
-│   │   │   │   └── WiFiMouseService.kt         # Main service
+│   │   │   │   ├── WiFiMouseService.kt                  # Main service with LazyInputController
+│   │   │   │   └── ControlServerAccessibilityService.kt # AccessibilityService implementation
 │   │   │   ├── network/
-│   │   │   │   └── ServerSocket.kt             # TCP server & command parser
+│   │   │   │   └── ServerSocket.kt                      # TCP server & command parser
 │   │   │   ├── receiver/
-│   │   │   │   └── BootReceiver.kt             # Auto-start on boot
-│   │   │   └── MainActivity.kt                 # UI for server control
+│   │   │   │   └── BootReceiver.kt                      # Auto-start on boot
+│   │   │   └── MainActivity.kt                          # UI for server control
 │   │   ├── res/
 │   │   │   ├── drawable/                       # Launcher icon assets
 │   │   │   ├── layout/activity_main.xml
@@ -257,16 +280,32 @@ Abstract interface defining all input operations:
 - `typeText(text: String): Boolean`
 - And more...
 
+### AccessibilityInputController
+Uses Android's `AccessibilityService` API for non-root input injection:
+- Implements gesture-based input using `GestureDescription` and `dispatchGesture()`
+- Click gestures: Creates a swipe from point to itself (100ms duration)
+- Scroll gestures: Creates directional swipes with 500ms duration
+- Supported directions: UP, DOWN, LEFT, RIGHT
+- Works on any Android device without requiring root access
+- Automatically used when AccessibilityService is enabled
+
+### LazyInputController
+Wrapper controller that dynamically checks for AccessibilityService:
+- Checks on-demand (on each command) rather than at startup
+- Uses AccessibilityService if available
+- Falls back to RootInputController if AccessibilityService is not enabled
+- Allows seamless switching without app restart
+
 ### RootInputController
 Uses Android's `input` shell command to inject events system-wide:
 ```kotlin
 input mousemove 500 300
-input tap 500 300
+input swipe 500 300 500 300 100  // Click via swipe
 input keyevent 4
 input text "Hello"
 ```
 
-**Note**: The `tap` command directly injects touch events without requiring button codes.
+**Note**: Requires INJECT_EVENTS permission and device-level access.
 
 ### WiFiMouseService
 - Implements `Service` interface
@@ -287,20 +326,30 @@ input text "Hello"
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 <uses-permission android:name="android.permission.INJECT_EVENTS" />
+<uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
 ```
 
-**Note**: The `INJECT_EVENTS` permission requires the device to have appropriate system configuration. On emulators and devices without system-level access, use the `input` shell command approach (which is already implemented).
+**Permission Details:**
+- `INTERNET`: Required for TCP socket communication
+- `RECEIVE_BOOT_COMPLETED`: Required for auto-start on boot
+- `FOREGROUND_SERVICE`: Required to run as foreground service
+- `INJECT_EVENTS`: Optional - used by RootInputController for shell-based input injection
+- `BIND_ACCESSIBILITY_SERVICE`: Required to declare AccessibilityService
+
+**Accessibility Service Enabling:**
+No special manifest permission grant is needed. Users enable the service through device Settings → Accessibility.
 
 ## Future Enhancements
 
-- **AccessibilityServiceInputController**: Non-root input injection via Accessibility Service
 - **Client App**: Full Android client with trackpad UI
+- **Keyboard Support**: Full keyboard input via AccessibilityService
 - **Authentication**: Optional password/token authentication for security
 - **Device Discovery**: mDNS/Bonjour service discovery
-- **Gesture Support**: Multi-touch gesture recognition
+- **Multi-touch Gestures**: Two-finger tap, pinch, and rotate via AccessibilityService
 - **Configuration UI**: Web-based admin panel
-- **Logging**: Detailed activity logging and debugging
+- **Advanced Logging**: Detailed activity logging and audit trail
 
 ## Troubleshooting
 
@@ -326,14 +375,25 @@ input text "Hello"
 
 Enable detailed debugging by running:
 ```bash
-adb logcat -v threadtime | grep -E "ServerSocket|RootInputController|WiFiMouseService"
+adb logcat -v threadtime | grep -E "ServerSocket|RootInputController|WiFiMouseService|AccessibilityInputController|LazyInputController"
 ```
 
 This will show:
 - Commands received from client
-- Command execution results
+- Input controller selection (Accessibility vs Root)
+- Gesture dispatch results
 - Shell command output and errors
 - Connection lifecycle events
+
+**AccessibilityService Specific:**
+```bash
+adb logcat | grep "AccessibilityInputController"
+```
+
+Look for:
+- `Click dispatch result: true` - Gesture successfully queued
+- `Accessibility service connected` - Service is active
+- `Using AccessibilityService for input` - Service is being used
 
 ## Contributing
 

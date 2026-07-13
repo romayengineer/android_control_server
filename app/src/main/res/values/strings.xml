@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Android WiFi Control Server</string>
+    <string name="accessibility_service_description">Enables WiFi mouse control by simulating touch gestures</string>
 </resources>

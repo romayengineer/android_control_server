@@ -25,13 +25,14 @@ class WiFiMouseService : Service() {
     }
 
     private var serverSocket: ServerSocket? = null
-    private var inputController: InputController? = null
+    private var fallbackController: InputController? = null
     private var serverThread: Thread? = null
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
-        inputController = RootInputController()
+        // Always create fallback controller
+        fallbackController = RootInputController()
         startForegroundService()
     }
 
@@ -79,7 +80,9 @@ class WiFiMouseService : Service() {
 
         serverThread = thread(isDaemon = false) {
             try {
-                serverSocket = ServerSocket(port, inputController!!)
+                // Create a lazy controller that checks for AccessibilityService on each command
+                val controller = LazyInputController(fallbackController!!)
+                serverSocket = ServerSocket(port, controller)
                 serverSocket?.start()
                 Log.d(TAG, "Server started on port $port")
             } catch (e: Exception) {
@@ -91,9 +94,48 @@ class WiFiMouseService : Service() {
     override fun onDestroy() {
         Log.d(TAG, "Service destroyed")
         serverSocket?.stop()
-        inputController?.shutdown()
+        fallbackController?.shutdown()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+}
+
+private class LazyInputController(private val fallback: InputController) : InputController {
+    private val tag = "LazyInputController"
+
+    private fun getController(): InputController {
+        val a11yController = ControlServerAccessibilityService.getInputController()
+        Log.d(tag, "getController: a11yController=$a11yController")
+        return if (a11yController != null) {
+            Log.d(tag, "Using AccessibilityService for input")
+            a11yController
+        } else {
+            Log.d(tag, "Using fallback RootInputController")
+            fallback
+        }
+    }
+
+    override fun moveMouse(x: Int, y: Int): Boolean {
+        Log.d(tag, "moveMouse($x, $y)")
+        return getController().moveMouse(x, y)
+    }
+
+    override fun clickMouse(button: com.romayengineer.controlserver.input.MouseButton): Boolean {
+        Log.d(tag, "clickMouse($button)")
+        return getController().clickMouse(button)
+    }
+
+    override fun clickMouse(x: Int, y: Int, button: com.romayengineer.controlserver.input.MouseButton): Boolean {
+        Log.d(tag, "clickMouse($x, $y, $button)")
+        return getController().clickMouse(x, y, button)
+    }
+    override fun pressMouse(button: com.romayengineer.controlserver.input.MouseButton): Boolean = getController().pressMouse(button)
+    override fun releaseMouse(button: com.romayengineer.controlserver.input.MouseButton): Boolean = getController().releaseMouse(button)
+    override fun scrollMouse(x: Int, y: Int, direction: com.romayengineer.controlserver.input.ScrollDirection, distance: Int): Boolean = getController().scrollMouse(x, y, direction, distance)
+    override fun pressKey(keyCode: Int): Boolean = getController().pressKey(keyCode)
+    override fun releaseKey(keyCode: Int): Boolean = getController().releaseKey(keyCode)
+    override fun typeText(text: String): Boolean = getController().typeText(text)
+    override fun isAvailable(): Boolean = getController().isAvailable()
+    override fun shutdown() = getController().shutdown()
 }
