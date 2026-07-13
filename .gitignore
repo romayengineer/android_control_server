@@ -1,0 +1,74 @@
+# Gradle files
+.gradle
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# Local configuration file
+local.properties
+
+# IntelliJ IDE files
+.idea/
+.idea_modules/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Android Gradle and Maven
+target/
+*.apk
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+
+# Kotlin
+*.kotlin_module
+
+# Build artifacts
+build/
+dist/
+
+# Editor files
+*.swp
+*.swo
+*~
+*.log
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.classpath
+.project
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Backup files
+*.bak
+*.swp
+*.swo
+*~
+
+# Android emulator
+avd/
+emulator/
+
+# Android NDK
+obj/
+
+# Firebase
+google-services.json
+
+# Signing keys
+keystore/
+*.jks
+*.keystore
+*.p12
