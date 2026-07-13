@@ -20,44 +20,71 @@
             android:textColor="@color/primary_text"
             android:layout_marginBottom="16dp" />
 
-        <TextView
+        <!-- IP and Port on same row -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Local IP:"
-            android:textSize="14sp"
-            android:textColor="@color/secondary_text"
-            android:layout_marginBottom="4dp" />
-
-        <TextView
-            android:id="@+id/ip_address_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Loading..."
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/accent_blue"
+            android:orientation="horizontal"
             android:layout_marginBottom="16dp"
-            android:padding="8dp"
-            android:background="@color/card_bg" />
+            android:gravity="center_vertical"
+            android:baselineAligned="false">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Port:"
-            android:textSize="16sp"
-            android:textColor="@color/secondary_text"
-            android:layout_marginBottom="8dp" />
+            <!-- IP Address Section -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginEnd="8dp">
 
-        <EditText
-            android:id="@+id/port_input"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:hint="3934"
-            android:textColor="@color/primary_text"
-            android:textColorHint="@color/secondary_text"
-            android:backgroundTint="@color/accent_blue"
-            android:layout_marginBottom="16dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Local IP:"
+                    android:textSize="14sp"
+                    android:textColor="@color/secondary_text"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/ip_address_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Loading..."
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent_blue"
+                    android:padding="8dp"
+                    android:background="@color/card_bg" />
+            </LinearLayout>
+
+            <!-- Port Section -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.8"
+                android:orientation="vertical"
+                android:layout_marginStart="8dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Port:"
+                    android:textSize="14sp"
+                    android:textColor="@color/secondary_text"
+                    android:layout_marginBottom="4dp" />
+
+                <EditText
+                    android:id="@+id/port_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:hint="3934"
+                    android:textColor="@color/primary_text"
+                    android:textColorHint="@color/secondary_text"
+                    android:backgroundTint="@color/accent_blue"
+                    android:padding="8dp" />
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
@@ -86,23 +113,34 @@
 
         </ScrollView>
 
-        <Button
-            android:id="@+id/start_button"
+        <!-- Start and Stop buttons on same row -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Start Server"
-            android:textColor="@color/primary_text"
-            android:backgroundTint="@color/accent_green"
-            android:layout_marginBottom="8dp" />
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
+            android:baselineAligned="false">
 
-        <Button
-            android:id="@+id/stop_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Stop Server"
-            android:textColor="@color/primary_text"
-            android:backgroundTint="@color/accent_red"
-            android:layout_marginBottom="16dp" />
+            <Button
+                android:id="@+id/start_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Start Server"
+                android:textColor="@color/primary_text"
+                android:backgroundTint="@color/accent_green"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/stop_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Stop Server"
+                android:textColor="@color/primary_text"
+                android:backgroundTint="@color/accent_red"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/status_text"
