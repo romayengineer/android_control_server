@@ -4,8 +4,6 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.romayengineer.controlserver.LogManager
 import com.romayengineer.controlserver.input.InputController
-import com.romayengineer.controlserver.input.MouseButton
-import com.romayengineer.controlserver.input.ScrollDirection
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
@@ -21,6 +19,7 @@ class ServerSocket(
 
     private var serverSocket: JavaServerSocket? = null
     private var isRunning = true
+    private val commandProcessor = CommandProcessor(inputController)
 
     fun start() {
         try {
@@ -71,99 +70,23 @@ class ServerSocket(
 
     private fun processCommand(jsonString: String): String {
         return try {
-            LogManager.d("Processing command: $jsonString")
             val json = JsonParser.parseString(jsonString).asJsonObject
-            val command = json.get("command").asString
-            LogManager.d("Command type: $command")
+            val result = commandProcessor.processCommand(json)
 
-            val success = when (command) {
-                "mousemove" -> {
-                    // Check if this is relative movement (dx, dy) or absolute (x, y)
-                    if (json.has("dx") || json.has("dy")) {
-                        val dx = json.get("dx")?.asInt ?: 0
-                        val dy = json.get("dy")?.asInt ?: 0
-                        val scaledDx = dx * 10
-                        val scaledDy = dy * 10
-                        LogManager.d("Executing mousemove relative: dx=$dx, dy=$dy (scaled to $scaledDx, $scaledDy)")
-                        inputController.moveMouseRelative(scaledDx, scaledDy)
-                    } else {
-                        val x = json.get("x").asInt
-                        val y = json.get("y").asInt
-                        LogManager.d("Executing mousemove absolute: $x, $y")
-                        inputController.moveMouse(x, y)
-                    }
-                }
-                "click" -> {
-                    val button = json.get("button")?.asString?.let { MouseButton.valueOf(it) } ?: MouseButton.LEFT
-
-                    if (json.has("x") && json.has("y")) {
-                        val x = json.get("x").asInt
-                        val y = json.get("y").asInt
-                        LogManager.d("Executing click($x, $y, $button)")
-                        val result = inputController.clickMouse(x, y, button)
-                        LogManager.d("Click result: $result")
-                        result
-                    } else {
-                        LogManager.d("Executing click at current position with button $button")
-                        val result = inputController.clickMouse(button)
-                        LogManager.d("Click result: $result")
-                        result
-                    }
-                }
-                "mousedown" -> {
-                    val button = json.get("button")?.asString?.let { MouseButton.valueOf(it) } ?: MouseButton.LEFT
-                    LogManager.d("Executing mousedown($button)")
-                    inputController.pressMouse(button)
-                }
-                "mouseup" -> {
-                    val button = json.get("button")?.asString?.let { MouseButton.valueOf(it) } ?: MouseButton.LEFT
-                    LogManager.d("Executing mouseup($button)")
-                    inputController.releaseMouse(button)
-                }
-                "scroll" -> {
-                    val x = json.get("x").asInt
-                    val y = json.get("y").asInt
-                    val direction = ScrollDirection.valueOf(json.get("direction").asString)
-                    val distance = json.get("distance")?.asInt ?: 5
-                    LogManager.d("Executing scroll($x, $y, $direction, $distance)")
-                    inputController.scrollMouse(x, y, direction, distance)
-                }
-                "keypress" -> {
-                    val keyCode = json.get("keycode").asInt
-                    LogManager.d("Executing keypress($keyCode)")
-                    inputController.pressKey(keyCode)
-                }
-                "keydown" -> {
-                    val keyCode = json.get("keycode").asInt
-                    LogManager.d("Executing keydown($keyCode)")
-                    inputController.pressKey(keyCode)
-                }
-                "keyup" -> {
-                    val keyCode = json.get("keycode").asInt
-                    LogManager.d("Executing keyup($keyCode)")
-                    inputController.releaseKey(keyCode)
-                }
-                "text" -> {
-                    val text = json.get("text").asString
-                    LogManager.d("Executing typeText($text)")
-                    inputController.typeText(text)
-                }
-                else -> {
-                    LogManager.w("Unknown command: $command")
-                    false
+            val response = JsonObject().apply {
+                addProperty("success", result.success)
+                addProperty("command", result.command)
+                if (result.error != null) {
+                    addProperty("error", result.error)
                 }
             }
-
-            LogManager.d("Command execution result: $success")
-            val response = JsonObject()
-            response.addProperty("success", success)
-            response.addProperty("command", command)
             response.toString()
         } catch (e: Exception) {
             LogManager.e("Error processing command: $jsonString - ${e.message}", e)
-            val response = JsonObject()
-            response.addProperty("success", false)
-            response.addProperty("error", e.message)
+            val response = JsonObject().apply {
+                addProperty("success", false)
+                addProperty("error", e.message)
+            }
             response.toString()
         }
     }

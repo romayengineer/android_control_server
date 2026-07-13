@@ -5,7 +5,8 @@
       "PowerShell(java *)",
       "PowerShell(find *)",
       "PowerShell(Test-Path *)",
-      "PowerShell(adb shell *)"
+      "PowerShell(adb shell *)",
+      "Bash(pwsh ./scripts/install.ps1)"
     ]
   }
 }

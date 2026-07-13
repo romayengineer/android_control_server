@@ -34,6 +34,8 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Dual Protocol Support**: Same JSON command format works over both TCP and WebSocket connections
 - **Auto-Reconnect**: Web frontend automatically attempts to reconnect every 3 seconds if connection is lost after initial connection
 - **Connection Resilience**: Smart reconnection only activates after successful initial connection, not on failed first attempts
+- **Smart Click Positioning**: Click commands without coordinates execute at current cursor position instead of resetting to origin
+- **Unified Command Processing**: Centralized CommandProcessor eliminates code duplication between TCP and WebSocket servers
 
 ## Architecture
 
@@ -541,6 +543,7 @@ android_control_server/
 │   │   │   │   ├── ControlServerAccessibilityService.kt # AccessibilityService implementation
 │   │   │   │   └── KeepAliveJobService.kt               # Periodic service health check & restart
 │   │   │   ├── network/
+│   │   │   │   ├── CommandProcessor.kt                  # Centralized command processing logic
 │   │   │   │   ├── ServerSocket.kt                      # TCP server & command parser
 │   │   │   │   └── WebSocketServer.kt                   # WebSocket server for browser clients
 │   │   │   ├── receiver/
@@ -629,17 +632,28 @@ Main Android service orchestrating network servers and input handling:
 - **Thread Management**: Handles thread lifecycle, interruption, and cleanup
 - **Fallback Controller**: Maintains RootInputController as fallback input method
 
+### CommandProcessor
+Centralized command processing logic shared by all network servers:
+- **Single Source of Truth**: All command parsing and execution logic in one reusable class
+- **Consistency**: Ensures TCP and WebSocket servers handle commands identically
+- **Maintainability**: Command processing logic changes only need to be made once
+- **Composition Pattern**: Both ServerSocket and WebSocketServer use CommandProcessor through composition
+- **Command Support**: Handles mousemove, click, scroll, keypress, keydown, keyup, text, mousedown, and mouseup commands
+- **Relative/Absolute Movement**: Supports both relative (dx, dy) and absolute (x, y) mouse positioning
+- **Smart Positioning**: Click commands without coordinates execute at current cursor position
+
 ### ServerSocket
+TCP socket implementation for traditional socket-based clients:
 - Accepts TCP connections on specified port
 - Handles each client in separate thread
-- Parses JSON commands
-- Routes to InputController
-- Returns JSON responses
+- Parses JSON commands and delegates to CommandProcessor
+- Returns JSON responses with success status and optional errors
 
 ### WebSocketServer
 Modern WebSocket implementation for browser-based clients:
 - **Port**: Runs on TCP port + 1 (default 3935)
 - **Concurrent Clients**: Supports multiple simultaneous WebSocket connections
+- **Unified Processing**: Uses shared CommandProcessor for consistent command handling with TCP server
 - **Same Commands**: Accepts identical JSON command format as TCP server
 - **JSON Parsing**: Uses Gson for automatic JSON serialization/deserialization
 - **Connection Lifecycle**: Logs client connections, disconnections, and errors
