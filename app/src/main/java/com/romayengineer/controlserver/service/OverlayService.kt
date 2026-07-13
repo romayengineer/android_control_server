@@ -4,9 +4,7 @@ import android.app.Service
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.util.Log
 import android.view.WindowManager
 import com.romayengineer.controlserver.ui.CursorView
@@ -16,16 +14,13 @@ class OverlayService : Service() {
         private const val TAG = "OverlayService"
         private var overlayView: CursorView? = null
         private var windowManager: WindowManager? = null
-        private val mainHandler = Handler(Looper.getMainLooper())
         private var currentCursorX: Int = 0
         private var currentCursorY: Int = 0
 
         fun updateCursorPosition(x: Int, y: Int) {
             currentCursorX = x
             currentCursorY = y
-            mainHandler.post {
-                overlayView?.updateCursorPosition(x, y)
-            }
+            overlayView?.updateCursorPosition(x, y)
         }
 
         fun getCursorPosition(): Pair<Int, Int> {
@@ -33,9 +28,7 @@ class OverlayService : Service() {
         }
 
         fun setCursorVisible(visible: Boolean) {
-            mainHandler.post {
-                overlayView?.setCursorVisible(visible)
-            }
+            overlayView?.setCursorVisible(visible)
         }
     }
 

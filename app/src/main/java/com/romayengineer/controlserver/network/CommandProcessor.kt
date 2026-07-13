@@ -50,12 +50,10 @@ class CommandProcessor(private val inputController: InputController) {
             val dy = command.get("dy")?.asInt ?: 0
             val scaledDx = dx * 10
             val scaledDy = dy * 10
-            LogManager.d("Executing mousemove relative: dx=$dx, dy=$dy (scaled to $scaledDx, $scaledDy)")
             inputController.moveMouseRelative(scaledDx, scaledDy)
         } else {
             val x = command.get("x")?.asInt ?: 0
             val y = command.get("y")?.asInt ?: 0
-            LogManager.d("Executing mousemove absolute: $x, $y")
             inputController.moveMouse(x, y)
         }
     }

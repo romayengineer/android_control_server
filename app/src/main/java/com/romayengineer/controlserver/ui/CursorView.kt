@@ -35,7 +35,7 @@ class CursorView @JvmOverloads constructor(
     fun updateCursorPosition(x: Int, y: Int) {
         cursorX = x.toFloat()
         cursorY = y.toFloat()
-        invalidate()
+        postInvalidate()
     }
 
     fun setCursorVisible(visible: Boolean) {

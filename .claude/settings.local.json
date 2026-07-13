@@ -6,7 +6,8 @@
       "PowerShell(find *)",
       "PowerShell(Test-Path *)",
       "PowerShell(adb shell *)",
-      "Bash(pwsh ./scripts/install.ps1)"
+      "Bash(pwsh ./scripts/install.ps1)",
+      "Bash(Find the *)"
     ]
   }
 }
