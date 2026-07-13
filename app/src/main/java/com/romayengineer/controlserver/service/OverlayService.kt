@@ -17,11 +17,19 @@ class OverlayService : Service() {
         private var overlayView: CursorView? = null
         private var windowManager: WindowManager? = null
         private val mainHandler = Handler(Looper.getMainLooper())
+        private var currentCursorX: Int = 0
+        private var currentCursorY: Int = 0
 
         fun updateCursorPosition(x: Int, y: Int) {
+            currentCursorX = x
+            currentCursorY = y
             mainHandler.post {
                 overlayView?.updateCursorPosition(x, y)
             }
+        }
+
+        fun getCursorPosition(): Pair<Int, Int> {
+            return Pair(currentCursorX, currentCursorY)
         }
 
         fun setCursorVisible(visible: Boolean) {

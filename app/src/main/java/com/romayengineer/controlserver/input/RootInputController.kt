@@ -36,10 +36,19 @@ class RootInputController : InputController {
     }
 
     override fun moveMouse(x: Int, y: Int): Boolean {
-        val command = "input mousemove $x $y"
-        Log.d(TAG, "moveMouse($x, $y)")
-        OverlayService.updateCursorPosition(x, y)
+        val (clampedX, clampedY) = InputControllerCompanion.clampCoordinates(x, y)
+        val command = "input mousemove $clampedX $clampedY"
+        Log.d(TAG, "moveMouse($x, $y) -> clamped to ($clampedX, $clampedY)")
+        OverlayService.updateCursorPosition(clampedX, clampedY)
         return executeCommand(command)
+    }
+
+    override fun moveMouseRelative(dx: Int, dy: Int): Boolean {
+        val (currentX, currentY) = OverlayService.getCursorPosition()
+        val newX = currentX + dx
+        val newY = currentY + dy
+        Log.d(TAG, "moveMouseRelative($dx, $dy) from ($currentX, $currentY) to ($newX, $newY)")
+        return moveMouse(newX, newY)
     }
 
     override fun clickMouse(button: MouseButton): Boolean {

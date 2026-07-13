@@ -16,9 +16,18 @@ class AccessibilityInputController(private val service: AccessibilityService) : 
     }
 
     override fun moveMouse(x: Int, y: Int): Boolean {
-        Log.d(TAG, "moveMouse($x, $y)")
-        OverlayService.updateCursorPosition(x, y)
+        val (clampedX, clampedY) = InputControllerCompanion.clampCoordinates(x, y)
+        Log.d(TAG, "moveMouse($x, $y) -> clamped to ($clampedX, $clampedY)")
+        OverlayService.updateCursorPosition(clampedX, clampedY)
         return true
+    }
+
+    override fun moveMouseRelative(dx: Int, dy: Int): Boolean {
+        val (currentX, currentY) = OverlayService.getCursorPosition()
+        val newX = currentX + dx
+        val newY = currentY + dy
+        Log.d(TAG, "moveMouseRelative($dx, $dy) from ($currentX, $currentY) to ($newX, $newY)")
+        return moveMouse(newX, newY)
     }
 
     override fun clickMouse(button: MouseButton): Boolean {

@@ -121,10 +121,14 @@ Comprehensive logging for debugging (press F12 to open Developer Tools):
 
 The app communicates with the Android server using JSON messages:
 
-**Mouse Movement:**
+**Mouse Movement (Relative):**
 ```json
-{"command": "mousemove", "x": 500, "y": 300}
+{"command": "mousemove", "dx": 50, "dy": 30}
 ```
+The `dx` and `dy` values are relative movements (deltas) ranging from -100 to 100:
+- **Range**: -100 (opposite direction) to 100 (full circle radius in that direction)
+- **Benefits**: Works on any screen size, unbounded movement
+- **Example**: Moving the circle pointer to the right-middle sends `dx: 100, dy: 0`
 
 **Click:**
 ```json
@@ -189,11 +193,14 @@ The project is fully typed with:
 **Example console output when dragging:**
 ```
 ✅ WebSocket connected to ws://192.168.1.100:3935
-📤 Event sent (debounced): {command: "mousemove", x: 150, y: 150}
+📤 Event sent (debounced): {command: "mousemove", dx: 75, dy: 50}
+📤 Event sent (debounced): {command: "mousemove", dx: 100, dy: 0}
 🖱️ Left click
 📤 Event sent: {command: "click", button: "LEFT"}
 📥 Server response: {success: true, command: "click"}
 ```
+
+Notice the `dx` and `dy` values are relative deltas, not absolute positions. This allows unbounded mouse control regardless of the target device's screen resolution.
 
 ## Development Notes
 

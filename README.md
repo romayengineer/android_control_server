@@ -424,14 +424,19 @@ See [SERVER_API.md](SERVER_API.md) for complete command reference and JSON messa
 
 ### Supported Commands (TCP and WebSocket)
 
-Both TCP and WebSocket servers accept the same JSON command format:
+Both TCP and WebSocket servers accept JSON command format:
 
 **Mouse Control:**
 ```json
-{"command": "mousemove", "x": 500, "y": 300}
+{"command": "mousemove", "dx": 50, "dy": 30}
 {"command": "click", "x": 500, "y": 300, "button": "LEFT"}
 {"command": "scroll", "x": 500, "y": 300, "direction": "DOWN", "distance": 3}
 ```
+
+**Note on Mouse Movement:**
+- **Relative Movement** (`dx`, `dy`): Web frontend sends relative deltas (-100 to 100) for unbounded control
+- **Absolute Movement** (`x`, `y`): Traditional TCP clients can still send absolute coordinates
+- The server handles both formats transparently
 
 **Keyboard Control:**
 ```json
@@ -454,18 +459,16 @@ Using JavaScript in a browser client:
 const ws = new WebSocket('ws://192.168.1.100:3935');
 
 ws.onopen = () => {
-    // Send mouse move command
+    // Send relative mouse move command (web frontend example)
     ws.send(JSON.stringify({
         command: 'mousemove',
-        x: 500,
-        y: 300
+        dx: 75,     // relative delta X (-100 to 100)
+        dy: 50      // relative delta Y (-100 to 100)
     }));
 
     // Send click command
     ws.send(JSON.stringify({
         command: 'click',
-        x: 500,
-        y: 300,
         button: 'LEFT'
     }));
 
@@ -485,6 +488,8 @@ ws.onerror = (error) => {
     console.error('WebSocket error:', error);
 };
 ```
+
+**Note:** The web frontend uses relative `dx`/`dy` values for flexible unbounded control. Traditional TCP clients can use absolute `x`/`y` coordinates. The server handles both formats.
 
 **Response Format (both TCP and WebSocket):**
 ```json

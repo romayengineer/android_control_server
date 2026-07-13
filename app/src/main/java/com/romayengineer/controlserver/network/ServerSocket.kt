@@ -78,10 +78,20 @@ class ServerSocket(
 
             val success = when (command) {
                 "mousemove" -> {
-                    val x = json.get("x").asInt
-                    val y = json.get("y").asInt
-                    LogManager.d("Executing mousemove($x, $y)")
-                    inputController.moveMouse(x, y)
+                    // Check if this is relative movement (dx, dy) or absolute (x, y)
+                    if (json.has("dx") || json.has("dy")) {
+                        val dx = json.get("dx")?.asInt ?: 0
+                        val dy = json.get("dy")?.asInt ?: 0
+                        val scaledDx = dx * 10
+                        val scaledDy = dy * 10
+                        LogManager.d("Executing mousemove relative: dx=$dx, dy=$dy (scaled to $scaledDx, $scaledDy)")
+                        inputController.moveMouseRelative(scaledDx, scaledDy)
+                    } else {
+                        val x = json.get("x").asInt
+                        val y = json.get("y").asInt
+                        LogManager.d("Executing mousemove absolute: $x, $y")
+                        inputController.moveMouse(x, y)
+                    }
                 }
                 "click" -> {
                     val x = json.get("x")?.asInt ?: 500

@@ -171,6 +171,11 @@ private class LazyInputController(private val fallback: InputController) : Input
         return getController().moveMouse(x, y)
     }
 
+    override fun moveMouseRelative(dx: Int, dy: Int): Boolean {
+        LogManager.d("moveMouseRelative($dx, $dy)")
+        return getController().moveMouseRelative(dx, dy)
+    }
+
     override fun clickMouse(button: com.romayengineer.controlserver.input.MouseButton): Boolean {
         LogManager.d("clickMouse($button)")
         return getController().clickMouse(button)

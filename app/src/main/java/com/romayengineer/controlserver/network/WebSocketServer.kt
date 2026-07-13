@@ -50,10 +50,20 @@ class WebSocketServer(
 
             val result = when (commandType) {
                 "mousemove" -> {
-                    val x = command.get("x")?.asInt ?: 0
-                    val y = command.get("y")?.asInt ?: 0
-                    LogManager.d("Executing mousemove($x, $y)")
-                    inputController.moveMouse(x, y)
+                    // Check if this is relative movement (dx, dy) or absolute (x, y)
+                    if (command.has("dx") || command.has("dy")) {
+                        val dx = command.get("dx")?.asInt ?: 0
+                        val dy = command.get("dy")?.asInt ?: 0
+                        val scaledDx = dx * 10
+                        val scaledDy = dy * 10
+                        LogManager.d("Executing mousemove relative: dx=$dx, dy=$dy (scaled to $scaledDx, $scaledDy)")
+                        inputController.moveMouseRelative(scaledDx, scaledDy)
+                    } else {
+                        val x = command.get("x")?.asInt ?: 0
+                        val y = command.get("y")?.asInt ?: 0
+                        LogManager.d("Executing mousemove absolute: $x, $y")
+                        inputController.moveMouse(x, y)
+                    }
                 }
                 "click" -> {
                     val x = command.get("x")?.asInt ?: 0

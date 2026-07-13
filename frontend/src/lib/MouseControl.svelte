@@ -127,13 +127,14 @@
 			const angle = Math.atan2(dy, dx);
 			const magnitude = Math.min(distance / CIRCLE_RADIUS, 1);
 
-			const moveX = Math.round(centerX + Math.cos(angle) * magnitude * CIRCLE_RADIUS);
-			const moveY = Math.round(centerY + Math.sin(angle) * magnitude * CIRCLE_RADIUS);
+			// Calculate relative movement based on direction and magnitude
+			const relativeX = Math.round(Math.cos(angle) * magnitude * 100);
+			const relativeY = Math.round(Math.sin(angle) * magnitude * 100);
 
 			sendCommandDebounced({
 				command: 'mousemove',
-				x: moveX,
-				y: moveY
+				dx: relativeX,
+				dy: relativeY
 			});
 		}
 	}

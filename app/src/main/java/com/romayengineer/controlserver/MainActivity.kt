@@ -8,14 +8,17 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.DisplayMetrics
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.view.View
+import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.romayengineer.controlserver.input.InputControllerCompanion
 import com.romayengineer.controlserver.service.WiFiMouseService
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -31,6 +34,17 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Get and set screen dimensions for cursor bounds checking
+        val displayMetrics = DisplayMetrics()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            display?.getRealMetrics(displayMetrics)
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.getRealMetrics(displayMetrics)
+        }
+        InputControllerCompanion.setScreenDimensions(displayMetrics.widthPixels, displayMetrics.heightPixels)
+        LogManager.i("Screen dimensions: ${displayMetrics.widthPixels} x ${displayMetrics.heightPixels}")
 
         val portEditText = findViewById<EditText>(R.id.port_input)
         val startButton = findViewById<Button>(R.id.start_button)
