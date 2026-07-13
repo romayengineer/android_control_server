@@ -14,8 +14,8 @@ object InputControllerCompanion {
     }
 
     fun clampCoordinates(x: Int, y: Int): Pair<Int, Int> {
-        val clampedX = x.coerceIn(0, screenWidth)
-        val clampedY = y.coerceIn(0, screenHeight)
+        val clampedX = x.coerceIn(0, screenWidth - 1)
+        val clampedY = y.coerceIn(0, screenHeight - 1)
         return Pair(clampedX, clampedY)
     }
 }
