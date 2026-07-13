@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 import kotlin.math.min
 
@@ -59,5 +60,10 @@ class CursorView @JvmOverloads constructor(
         val lineLength = cursorSize + 8f
         canvas.drawLine(cursorX - lineLength, cursorY, cursorX + lineLength, cursorY, paint)
         canvas.drawLine(cursorX, cursorY - lineLength, cursorX, cursorY + lineLength, paint)
+    }
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        // Don't consume touch events - allow them to pass through to underlying apps
+        return false
     }
 }
