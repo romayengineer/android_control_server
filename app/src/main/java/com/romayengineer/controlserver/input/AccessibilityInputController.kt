@@ -6,6 +6,7 @@ import android.graphics.Path
 import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import com.romayengineer.controlserver.MainActivity
 
 data class QuadCoords(val startX: Float, val startY: Float, val endX: Float, val endY: Float)
 
@@ -15,8 +16,9 @@ class AccessibilityInputController(private val service: AccessibilityService) : 
     }
 
     override fun moveMouse(x: Int, y: Int): Boolean {
-        Log.d(TAG, "moveMouse($x, $y) - Not supported by AccessibilityService")
-        return true // No-op, but return true since movement isn't critical
+        Log.d(TAG, "moveMouse($x, $y)")
+        MainActivity.updateCursorPosition(x, y)
+        return true
     }
 
     override fun clickMouse(button: MouseButton): Boolean {

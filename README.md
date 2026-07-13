@@ -16,6 +16,8 @@ Control your Android projector's mouse pointer, keyboard, and other input from a
 - **Extensible Architecture**: Interface-based design allows multiple input injection backends
 - **AccessibilityService Support**: Non-root click and scroll via Android AccessibilityService API
 - **Dual Input Methods**: AccessibilityService (preferred) with RootInputController fallback
+- **Visual Cursor**: Real-time cursor display with crosshair design - visible on app screen
+- **Cursor Tracking**: Cursor position updates automatically with mouse movement commands
 - **Debug Logging**: Detailed logs for troubleshooting command execution
 
 ## Architecture
@@ -160,6 +162,7 @@ Once enabled, the app will automatically use AccessibilityService for click and 
    - Server starts automatically when you open the WiFi Mouse Server app
    - No need to click any button - it's ready to use immediately
    - Note the projector's IP address displayed on screen
+   - A red cursor crosshair will appear on the display to show mouse position
 
 2. **Auto-start on Boot**:
    - Server automatically starts when device boots
@@ -168,6 +171,14 @@ Once enabled, the app will automatically use AccessibilityService for click and 
 3. **Smart Restart**:
    - If server is already running on the configured port, it will restart cleanly
    - Tap "Start Server" button to manually restart with a different port
+
+### Cursor Display
+
+The app features a real-time cursor display:
+- **Visible Cursor**: Red circular crosshair appears on the app screen
+- **Live Tracking**: Cursor moves instantly when you send mouse movement commands
+- **Non-intrusive**: Overlays on top of the UI without blocking buttons or text
+- **Always Visible**: Shows your current mouse position on the projector
 
 ### Finding Your Projector's IP
 
@@ -247,7 +258,9 @@ android_control_server/
 │   │   │   │   └── ServerSocket.kt                      # TCP server & command parser
 │   │   │   ├── receiver/
 │   │   │   │   └── BootReceiver.kt                      # Auto-start on boot
-│   │   │   └── MainActivity.kt                          # UI for server control
+│   │   │   ├── ui/
+│   │   │   │   └── CursorView.kt                        # Custom cursor with crosshair design
+│   │   │   └── MainActivity.kt                          # UI for server control + cursor management
 │   │   ├── res/
 │   │   │   ├── drawable/                       # Launcher icon assets
 │   │   │   ├── layout/activity_main.xml
@@ -320,6 +333,14 @@ input text "Hello"
 - Routes to InputController
 - Returns JSON responses
 
+### CursorView
+Custom Android View for visual cursor display:
+- **Design**: Red circular crosshair with semi-transparent fill
+- **Real-time Updates**: Cursor position updates on every mouse move command
+- **Thread-safe**: Updates posted to main thread via Handler
+- **Layout Integration**: Overlay view on top of control UI without interference
+- **No Performance Impact**: Lightweight drawing using Canvas API
+
 ## Permissions Required
 
 ```xml
@@ -345,10 +366,13 @@ No special manifest permission grant is needed. Users enable the service through
 
 - **Client App**: Full Android client with trackpad UI
 - **Keyboard Support**: Full keyboard input via AccessibilityService
+- **Cursor Customization**: Selectable cursor styles, colors, and sizes
+- **Click Animation**: Visual feedback when clicks are executed
+- **Gesture Trails**: Show movement paths during extended operations
 - **Authentication**: Optional password/token authentication for security
 - **Device Discovery**: mDNS/Bonjour service discovery
 - **Multi-touch Gestures**: Two-finger tap, pinch, and rotate via AccessibilityService
-- **Configuration UI**: Web-based admin panel
+- **Configuration UI**: Web-based admin panel for settings and cursor preferences
 - **Advanced Logging**: Detailed activity logging and audit trail
 
 ## Troubleshooting

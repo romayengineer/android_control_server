@@ -4,17 +4,37 @@ import android.content.Intent
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.romayengineer.controlserver.service.WiFiMouseService
+import com.romayengineer.controlserver.ui.CursorView
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        private var cursorView: CursorView? = null
+        private val mainHandler = Handler(Looper.getMainLooper())
+
+        fun updateCursorPosition(x: Int, y: Int) {
+            mainHandler.post {
+                cursorView?.updateCursorPosition(x, y)
+            }
+        }
+
+        fun setCursorVisible(visible: Boolean) {
+            mainHandler.post {
+                cursorView?.setCursorVisible(visible)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -24,6 +44,8 @@ class MainActivity : AppCompatActivity() {
         val stopButton = findViewById<Button>(R.id.stop_button)
         val statusText = findViewById<TextView>(R.id.status_text)
         val ipAddressText = findViewById<TextView>(R.id.ip_address_text)
+
+        cursorView = findViewById<CursorView>(R.id.cursor_view)
 
         portEditText.setText(WiFiMouseService.DEFAULT_PORT.toString())
         displayLocalIpAddress(ipAddressText)

@@ -1,6 +1,7 @@
 package com.romayengineer.controlserver.input
 
 import android.util.Log
+import com.romayengineer.controlserver.MainActivity
 
 class RootInputController : InputController {
     companion object {
@@ -37,6 +38,7 @@ class RootInputController : InputController {
     override fun moveMouse(x: Int, y: Int): Boolean {
         val command = "input mousemove $x $y"
         Log.d(TAG, "moveMouse($x, $y)")
+        MainActivity.updateCursorPosition(x, y)
         return executeCommand(command)
     }
 
