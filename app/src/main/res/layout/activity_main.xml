@@ -171,9 +171,4 @@
 
     </LinearLayout>
 
-    <com.romayengineer.controlserver.ui.CursorView
-        android:id="@+id/cursor_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
 </FrameLayout>

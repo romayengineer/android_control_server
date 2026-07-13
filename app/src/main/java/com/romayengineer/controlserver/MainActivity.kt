@@ -17,28 +17,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.romayengineer.controlserver.service.WiFiMouseService
-import com.romayengineer.controlserver.ui.CursorView
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 
 class MainActivity : AppCompatActivity() {
     companion object {
-        private var cursorView: CursorView? = null
-        private val mainHandler = Handler(Looper.getMainLooper())
         private const val PERMISSION_REQUEST_CODE = 1001
-
-        fun updateCursorPosition(x: Int, y: Int) {
-            mainHandler.post {
-                cursorView?.updateCursorPosition(x, y)
-            }
-        }
-
-        fun setCursorVisible(visible: Boolean) {
-            mainHandler.post {
-                cursorView?.setCursorVisible(visible)
-            }
-        }
     }
 
     private var showingPermissionDialog = false
@@ -54,8 +39,6 @@ class MainActivity : AppCompatActivity() {
         val ipAddressText = findViewById<TextView>(R.id.ip_address_text)
         val logText = findViewById<TextView>(R.id.log_text)
         val statusBadge = findViewById<View>(R.id.status_badge)
-
-        cursorView = findViewById<CursorView>(R.id.cursor_view)
 
         LogManager.setLogTextView(logText)
         LogManager.i("App started")
