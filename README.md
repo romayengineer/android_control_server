@@ -185,11 +185,12 @@ All build, installation, and control scripts are organized in the `scripts/` fol
 **PowerShell Scripts (Windows):**
 - `scripts/build.ps1` - Build the APK
 - `scripts/install.ps1` - Build, install, and launch to device
+- `scripts/run_and_tail.ps1` - Build, install, and monitor logs for 15 seconds
 
 **Shell Scripts (macOS/Linux):**
 - `scripts/mouse_event.sh` - Send mouse commands to server
 - `scripts/debug_click.sh` - Test click events
-- `scripts/run_and_tail.sh` - Run and monitor logs
+- `scripts/run_and_tail.sh` - Build, install, and monitor logs
 
 ### Build and Install Scripts
 
@@ -223,6 +224,23 @@ Features:
 - ✓ Auto-launches app after installation
 - ✓ Shows build metrics and progress
 - ✓ Helpful error messages and troubleshooting tips
+
+**scripts/run_and_tail.ps1** - Build, install, and monitor logs
+```powershell
+# Build, install, and tail logs for 15 seconds
+.\scripts\run_and_tail.ps1
+
+# With release build
+.\scripts\run_and_tail.ps1 -BuildType release
+```
+
+Features:
+- ✓ Builds and installs the app (same as install.ps1)
+- ✓ Clears logcat buffer for clean logs
+- ✓ Monitors app logs for 15 seconds in real-time
+- ✓ Filters for relevant app events (WiFiMouseService, ServerSocket, etc.)
+- ✓ Shows final log snapshot after monitoring stops
+- ✓ Perfect for testing and debugging
 
 ### Granting Permissions
 
@@ -436,9 +454,10 @@ android_control_server/
 ├── scripts/
 │   ├── build.ps1                      # PowerShell build script for Windows
 │   ├── install.ps1                    # PowerShell build + install + launch script
+│   ├── run_and_tail.ps1               # PowerShell build + install + monitor logs script
 │   ├── mouse_event.sh                 # Shell script for sending mouse commands
 │   ├── debug_click.sh                 # Shell script for debug click testing
-│   └── run_and_tail.sh                # Shell script for running and monitoring logs
+│   └── run_and_tail.sh                # Shell script for building, installing and monitoring logs
 └── README.md
 ```
 
