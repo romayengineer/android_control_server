@@ -228,6 +228,85 @@
 		currentVy = 0;
 	}
 
+	function onTouchStart(event: TouchEvent): void {
+		isDragging = true;
+		if (event.touches.length > 0) {
+			const touch = event.touches[0];
+			updateCursorPositionFromTouch(touch);
+		}
+	}
+
+	function onTouchMove(event: TouchEvent): void {
+		if (isDragging && event.touches.length > 0) {
+			event.preventDefault();
+			const touch = event.touches[0];
+			updateCursorPositionFromTouch(touch);
+		}
+	}
+
+	function onTouchEnd(): void {
+		isDragging = false;
+		currentVx = 0;
+		currentVy = 0;
+	}
+
+	function updateCursorPositionFromTouch(touch: Touch): void {
+		const rect = (document.querySelector('.circle-container') as HTMLElement)?.getBoundingClientRect();
+		if (!rect) return;
+
+		const x = touch.clientX - rect.left;
+		const y = touch.clientY - rect.top;
+
+		const dx = x - centerX;
+		const dy = y - centerY;
+		const distance = Math.sqrt(dx * dx + dy * dy);
+
+		if (distance <= CIRCLE_RADIUS) {
+			cursorX = x;
+			cursorY = y;
+
+			const angle = Math.atan2(dy, dx);
+			const magnitude = Math.min(distance / CIRCLE_RADIUS, 1);
+
+			// Calculate target velocity based on joystick position
+			const targetVx = Math.cos(angle) * magnitude * MAX_VELOCITY;
+			const targetVy = Math.sin(angle) * magnitude * MAX_VELOCITY;
+
+			// Smoothly accelerate/decelerate to target velocity
+			currentVx = currentVx + (targetVx - currentVx) * ACCELERATION;
+			currentVy = currentVy + (targetVy - currentVy) * ACCELERATION;
+
+			const relativeX = Math.round(currentVx);
+			const relativeY = Math.round(currentVy);
+
+			if (relativeX !== 0 || relativeY !== 0) {
+				pushCommand({
+					command: 'mousemove',
+					dx: relativeX,
+					dy: relativeY
+				});
+			}
+		} else {
+			// Decelerate when joystick is released
+			currentVx *= DECELERATION;
+			currentVy *= DECELERATION;
+
+			// Stop completely when velocity is very small
+			if (Math.abs(currentVx) < 0.1) currentVx = 0;
+			if (Math.abs(currentVy) < 0.1) currentVy = 0;
+
+			if (currentVx !== 0 || currentVy !== 0) {
+				const relativeX = Math.round(currentVx);
+				const relativeY = Math.round(currentVy);
+				pushCommand({
+					command: 'mousemove',
+					dx: relativeX,
+					dy: relativeY
+				});
+			}
+		}
+	}
+
 	function updateCursorPosition(event: MouseEvent): void {
 		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
 		const x = event.clientX - rect.left;
@@ -304,9 +383,11 @@
 		connectWebSocket();
 
 		window.addEventListener('mouseup', onMouseUp);
+		window.addEventListener('touchend', onTouchEnd);
 
 		return () => {
 			window.removeEventListener('mouseup', onMouseUp);
+			window.removeEventListener('touchend', onTouchEnd);
 		};
 	});
 
@@ -374,6 +455,9 @@
 				on:mousemove={onMouseMove}
 				on:click={onClick}
 				on:contextmenu={onContextMenu}
+				on:touchstart={onTouchStart}
+				on:touchmove={onTouchMove}
+				on:touchend={onTouchEnd}
 				type="button"
 				aria-label="Mouse control pad"
 				style="width: {CONTAINER_SIZE}px; height: {CONTAINER_SIZE}px;"
